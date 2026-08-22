@@ -99,6 +99,41 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 也可以下载 [`shadowrocket-global.conf`](./shadowrocket-global.conf)，通过 AirDrop、文件 App 或分享菜单交给 Shadowrocket 打开。
 
+### Johnshall 黑名单过滤 + 广告规则
+
+[Shadowrocket-ADBlock-Rules-Forever](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever#%E9%BB%91%E5%90%8D%E5%8D%95%E8%BF%87%E6%BB%A4--%E5%B9%BF%E5%91%8A) 还提供一份专门面向 Shadowrocket 的“黑名单过滤 + 广告”完整配置：
+
+- GFWList 等黑名单网站走代理。
+- 未匹配网站默认直连。
+- 包含广告与追踪过滤规则。
+- 局域网请求直连。
+- 上游项目每日自动构建更新。
+
+导入地址：
+
+```text
+https://johnshall.github.io/Shadowrocket-ADBlock-Rules-Forever/sr_top500_banlist_ad.conf
+```
+
+该完整配置体积约 3 MB，首次下载或更新可能需要较长时间；下载过程中不要立即重复添加。
+
+导入方法：
+
+1. 打开 Shadowrocket 的“配置”页面。
+2. 点击右上角 `+`。
+3. 粘贴上面的配置地址并下载。
+4. 在本地配置列表中选中它，点击“使用配置”。
+5. 将“全局路由”设置为“配置”，断开并重新连接一次。
+
+它和本仓库配置的区别：
+
+| 配置 | 未匹配网站 | AI 独立美台组 | 广告过滤 |
+|---|---|---|---|
+| `shadowrocket-global.conf` | 国外代理 | Claude、OpenAI、Google 三个独立组 | `AdvertisingLite` |
+| Johnshall 黑名单 + 广告 | 默认直连 | 无本仓库的三个独立 AI 组 | Johnshall 聚合规则 |
+
+Johnshall 文件是一份完整配置，不是可直接叠加到 `shadowrocket-global.conf` 的模块。建议把两份配置都下载到 Shadowrocket，按场景切换；如果选择 Johnshall 配置，本仓库的 AI 独立策略组不会生效。
+
 ### 更新配置
 
 在“配置”页面对当前配置执行更新或重新下载。配置中的 `update-url` 已指向本仓库 Raw 地址。
