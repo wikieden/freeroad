@@ -67,6 +67,7 @@ const indexOfRule = (fragment) => {
 const aiIndices = [
   indexOfRule("Claude/Claude.list,🧠 Claude"),
   indexOfRule("OpenAI/OpenAI.list,✨ OpenAI/AI"),
+  indexOfRule("Google/Google.list,🔷 Google/Gemini/Antigravity"),
   indexOfRule("Gemini/Gemini.list,🔷 Google/Gemini/Antigravity"),
   indexOfRule("YouTube/YouTube.list,🔷 Google/Gemini/Antigravity")
 ];

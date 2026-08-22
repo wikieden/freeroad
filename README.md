@@ -44,30 +44,49 @@ Clash Verge Rev 和 FlClash 通过脚本在节点订阅加载后重建策略组�
 
 仓库只保存公开分流逻辑，不保存机场订阅 URL、节点密码或私有网络配置。你可以检查全部规则，并把真实订阅凭据保留在自己的客户端或本地 YAML 中。
 
-## 先验证 Claude 出口
+## 先验证三个 AI 出口
+
+出口检测是配置完成后的关键验收步骤。Claude、OpenAI、Google/Gemini/Antigravity 使用三个相互独立的策略组，必须分别检查，不能只验证浏览器显示的普通公网 IP。
+
+### Claude
 
 检测地址：[Net.Coffee Claude AI IP 风险检测](https://ip.net.coffee/claude/)
 
-出口检测是配置完成后的关键验收步骤。该页面可以辅助查看：
+1. 在 `🧠 Claude` 中固定一个美国或台湾具体节点，重新连接并保持 Rule/规则模式。
+2. 打开检测页，确认“Claude AI 出口 IP”的国家与所选节点一致。
+3. 同时检查 Claude 支持地区、IP 信任评分、DNS 和 WebRTC/UDP 泄露提示。
+4. 实际打开 Claude 或执行一次 Claude Code 请求，再从客户端连接日志确认命中 `🧠 Claude`。
 
-- Claude AI 请求使用的出口 IP、地区、ASN 和运营商。
-- 当前出口是否属于 Claude 支持地区。
-- IP 信任评分以及 VPN、代理、Tor、机器人和滥用记录信号。
-- Claude 域名连通性和延迟。
-- DNS 出口、WebRTC/UDP 泄露、时区和浏览器指纹信息。
+### OpenAI / ChatGPT / Codex
 
-建议在每个客户端完成配置后按以下顺序检查：
+检测地址：[Net.Coffee ChatGPT · Codex IP 风险检测](https://ip.net.coffee/gpt/)
 
-1. 在 `🧠 Claude` 策略组中固定一个美国或台湾具体节点。
-2. 确认客户端使用 Rule/规则模式并已经重新连接。
-3. 用同一设备的浏览器打开检测地址。
-4. 检查“Claude AI 出口 IP”是否符合所选节点的预期地区。
-5. 检查 Claude 支持地区、DNS 泄露和 WebRTC/UDP 泄露提示。
-6. 更换 Claude 节点后重新连接并刷新页面，对比不同节点结果。
+1. 在 `✨ OpenAI/AI` 中固定一个美国或台湾具体节点并重新连接。
+2. 确认“ChatGPT 出口 IP”的国家与所选节点一致，并分别查看 `chatgpt.com` 与 `api.openai.com` 的连通性。
+3. 实际打开 ChatGPT 或发起一次 Codex/API 请求，再从客户端连接日志确认命中 `✨ OpenAI/AI`。
 
-如果页面提示处于 IPv6 环境，应先检查客户端是否真正应用了本仓库的 IPv6 关闭配置，以及系统或浏览器是否存在绕过代理的 IPv6/WebRTC 流量。
+### Google / Gemini / Antigravity
 
-> 这是第三方诊断工具，评分和标签只能用于节点横向比较，不代表 Anthropic 官方判定，也不能保证账号不会触发验证或风控。不要在任何检测页面输入账号密码、订阅链接或节点凭据。
+Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国家和地区](https://ai.google.dev/gemini-api/docs/available-regions)访问，[服务条款](https://ai.google.dev/gemini-api/terms)也写明只能在可用地区访问。[Gemini 隐私说明](https://support.google.com/gemini/answer/13594961?hl=zh-Hans)还说明服务会使用来自设备、IP 地址以及 Google 账号家庭/工作地址的位置信息。
+
+因此建议把 `🔷 Google/Gemini/Antigravity` 长期固定为一个支持地区的具体节点；如果 Google 账号国家是美国就固定美国节点，账号国家是台湾就固定台湾节点。不要在登录、Gemini 对话或 Antigravity 任务过程中在美国、台湾或其他国家节点之间来回切换。
+
+验证顺序：
+
+1. 固定 Google 组节点并重新连接，保持 Rule/规则模式。
+2. 打开 [Google 搜索“what is my ip”](https://www.google.com/search?q=what+is+my+ip)；如果结果页显示公网 IP，确认其国家符合预期。
+3. 分别登录 Gemini 与 Antigravity，并各完成一次真实模型请求；只能打开登录页不算验证完成。
+4. 查看客户端连接日志，确认 `google.com`、`googleapis.com`、`antigravity`、`cloudcode-pa` 等连接命中 `🔷 Google/Gemini/Antigravity`。
+5. 如果使用 Google 账号安全活动记录，再检查登录位置是否与固定出口国家一致。
+
+本仓库会把 Google 登录、Gmail、Drive、Gemini、Antigravity、YouTube 等 Google 流量统一送入该策略组，避免同一账号同时从不同国家出口访问。Google 官方公开资料没有写明“出口 IP 必须与账号国家完全相同”是所有产品的统一硬性规则，因此这里将两者一致作为稳定性强建议，而不是官方保证。
+
+### 验收标准与安全提示
+
+- 三个策略组都必须单独固定节点、实际发起服务请求，并在客户端连接日志中命中正确分组。
+- 检测结果、实际服务和客户端日志三者的出口国家应一致；任一不一致都先排查规则、IPv6、DNS 或 WebRTC 泄露。
+- 第三方检测页的评分和标签只适合辅助比较节点，不代表厂商官方判定，也不能保证账号不会触发验证或风控。
+- 不要在任何检测页面输入账号密码、订阅链接或节点凭据。
 
 ## 客户端官方下载
 
