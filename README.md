@@ -9,6 +9,25 @@
 
 > 这些文件只提供配置与分流规则，不提供代理节点。使用前需要准备兼容相应客户端的节点订阅。
 
+## 客户端官方下载
+
+| 客户端 | 平台 | 当前验证版本 | 官方下载地址 |
+|---|---|---|---|
+| Clash Verge Rev | Windows、macOS、Linux | v2.5.2 | [GitHub Releases](https://github.com/clash-verge-rev/clash-verge-rev/releases/latest) |
+| FlClash | Android、Windows、macOS、Linux | v0.8.96 | [GitHub Releases](https://github.com/chen08209/FlClash/releases/latest) |
+| Shadowrocket | iPhone、iPad、Mac、Apple TV | App Store 当前版 | [Apple App Store](https://apps.apple.com/us/app/shadowrocket/id932747118) |
+| Clash Meta for Android | Android | v2.11.33 | [GitHub Releases](https://github.com/MetaCubeX/ClashMetaForAndroid/releases/latest) |
+
+安装包选择：
+
+- 普通 Intel/AMD Windows 电脑选择 `x64` 安装包，Windows on ARM 选择 `arm64`。
+- Apple Silicon Mac（M1/M2/M3/M4 等）选择 `aarch64`/`arm64`，Intel Mac 选择 `x64`。
+- 绝大多数近年的 Android 手机选择 `arm64-v8a`；不确定时可选择 `universal`，文件会更大。
+- Debian/Ubuntu 选择 `.deb`，Fedora/RHEL 选择 `.rpm`。
+- 如果 Shadowrocket 链接跳回 App Store 首页或显示不可用，表示当前 Apple ID 所在地区未提供该 App；请使用 App Store 正常提供 Shadowrocket 的地区账号，不要从第三方网站侧载 IPA。
+
+请勿从来源不明的“汉化版”“破解版”或第三方 APK/IPA 下载站安装。这类客户端拥有 VPN 与全量网络流量权限，应优先使用项目 GitHub Releases 或 Apple App Store。
+
 ## 文件与客户端兼容性
 
 | 客户端 | 使用文件 | 使用方式 |
