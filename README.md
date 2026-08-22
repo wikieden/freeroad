@@ -249,6 +249,33 @@ clashmeta://install-config?url=<URL 编码后的完整 YAML 地址>
 
 参考：[Clash Meta for Android 官方仓库](https://github.com/MetaCubeX/ClashMetaForAndroid)。
 
+## 配置与出口检测
+
+### Claude AI 出口检测
+
+检测地址：[Net.Coffee Claude AI IP 风险检测](https://ip.net.coffee/claude/)
+
+该页面可以辅助查看：
+
+- Claude AI 请求使用的出口 IP、地区、ASN 和运营商。
+- 当前出口是否属于 Claude 支持地区。
+- IP 信任评分以及 VPN、代理、Tor、机器人和滥用记录信号。
+- Claude 域名连通性和延迟。
+- DNS 出口、WebRTC/UDP 泄露、时区和浏览器指纹信息。
+
+建议在每个客户端完成配置后按以下顺序检查：
+
+1. 在 `🧠 Claude` 策略组中固定一个美国或台湾具体节点。
+2. 确认客户端使用 Rule/规则模式并已经重新连接。
+3. 用同一设备的浏览器打开检测地址。
+4. 检查“Claude AI 出口 IP”是否符合所选节点的预期地区。
+5. 检查 Claude 支持地区、DNS 泄露和 WebRTC/UDP 泄露提示。
+6. 更换 Claude 节点后重新连接并刷新页面，对比不同节点结果。
+
+如果页面提示处于 IPv6 环境，应先检查客户端是否真正应用了本仓库的 IPv6 关闭配置，以及系统或浏览器是否存在绕过代理的 IPv6/WebRTC 流量。
+
+> 这是第三方诊断工具，评分和标签只能用于节点横向比较，不代表 Anthropic 官方判定，也不能保证账号不会触发验证或风控。不要在任何检测页面输入账号密码、订阅链接或节点凭据。
+
 ## 常见问题
 
 ### AI 策略组为空
