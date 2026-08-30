@@ -1,6 +1,6 @@
 // Define main function (script entry)
 // ============================================================================
-// Clash Verge 全局扩展脚本 —— 公开通用版 v2.3（Windows 校验兼容版）
+// Clash Verge 全局扩展脚本 —— 公开通用版 v2.4（AI UDP 失败关闭版）
 // 引擎：Boa/QuickJS（无 fs / 无网络，仅 console）。入口 main(config, name)。
 // ----------------------------------------------------------------------------
 // 这是「通用层」：节点按地区归类 + DNS/防泄露 + Claude/OpenAI/Google 独立风控分流。
@@ -214,6 +214,8 @@ function main(config, name) {
     "IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve",
     "IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve",
     "GEOSITE,anthropic,🧠 Claude", // geosite 分类兜底
+    // 仅当上面的 Claude 策略不支持 UDP、内核继续向下匹配时触发，避免换出口或直连。
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN-SUFFIX,sentry.io),(DOMAIN-SUFFIX,statsigapi.net),(DOMAIN-KEYWORD,datadog),(DOMAIN-KEYWORD,sift),(DOMAIN-SUFFIX,intercom.io),(DOMAIN-SUFFIX,intercomcdn.com),(DOMAIN,cdn.usefathom.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT",
 
     // OpenAI / 其他 AI 服务（Google 系服务转入下方独立组）
     "GEOSITE,openai,✨ OpenAI/AI",
@@ -225,6 +227,8 @@ function main(config, name) {
     "DOMAIN-SUFFIX,cursor.sh,✨ OpenAI/AI",
     "DOMAIN-SUFFIX,cursor.com,✨ OpenAI/AI",
     "DOMAIN-SUFFIX,huggingface.co,✨ OpenAI/AI",
+    // OpenAI/AI 节点不支持 UDP 时拒绝，让应用回退 TCP，不允许落入普通国外组。
+    "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,huggingface.co)))),REJECT",
     // Google AI / Antigravity 独立出口；cloudcode-pa 是 Antigravity 的后端服务域名关键词。
     "DOMAIN-KEYWORD,antigravity,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,cloudcode-pa,🔷 Google/Gemini/Antigravity",
@@ -259,6 +263,8 @@ function main(config, name) {
 
     // 厂商规则（Google 使用独立组，Apple 直连）
     "GEOSITE,google,🔷 Google/Gemini/Antigravity",
+    // Google 组节点不支持 UDP 时拒绝，避免 QUIC 改走其它国家节点或直连。
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT",
     "GEOSITE,apple,DIRECT",
     // 微软：国内可达的服务（@cn：dynamics.cn / lync.cn / microsoftonline-m.cn 等）直连，
     // 其余（海外）微软走代理 —— 海外 IP 一律走全局分流。@cn 必须排在 microsoft 前。
