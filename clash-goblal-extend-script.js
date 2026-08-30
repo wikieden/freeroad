@@ -1,9 +1,9 @@
 // Define main function (script entry)
 // ============================================================================
-// Clash Verge 全局扩展脚本 —— 公开通用版 v2.4（AI UDP 失败关闭版）
+// Clash Verge 全局扩展脚本 —— 公开通用版 v2.5（AI 服务分组版）
 // 引擎：Boa/QuickJS（无 fs / 无网络，仅 console）。入口 main(config, name)。
 // ----------------------------------------------------------------------------
-// 这是「通用层」：节点按地区归类 + DNS/防泄露 + Claude/OpenAI/Google 独立风控分流。
+// 这是「通用层」：节点按地区归类 + DNS/防泄露 + 三大 AI 独立组 + 其他 AI 统一组。
 // 个人规则不写这里 —— 通过订阅右键菜单的「编辑规则 / 编辑代理组」维护。
 //
 // Clash Verge Rev 2.5.2 增强链顺序（已核实源码 enhance/mod.rs）：
@@ -77,7 +77,7 @@ function main(config, name) {
   // 词边界 \b 是关键：避免 Russia→US（含 "us"）、Fukuoka→UK（含 "uk"）、Sweden→DE 这类子串误配。
   // 顺序即展示顺序：美国排最前，也是分类优先级（多匹配取第一个）。
   // auto:true = 该区做手自一体（默认自动测速、可手动钉）。现在全部地区都开。
-  // 美国、台湾地区组虽默认自动，但 AI 走单独的 ✨ OpenAI/AI 手动组，不受地区自动测速影响。
+  // 美国、台湾地区组虽默认自动，但四个 AI 策略组都直接使用具体节点，不受地区自动测速影响。
   const REGIONS = [
     { key: "🇺🇸 美国",  re: /美国|\bUSA?\b|United\s?States|America|洛杉矶|圣何塞|硅谷/i, auto: true },
     { key: "🇭🇰 香港",  re: /香港|\bHK\b|Hong\s?Kong/i, auto: true },
@@ -163,6 +163,12 @@ function main(config, name) {
     proxies: aiNodes
   };
 
+  // 其他境外 AI：统一固定美台出口；明确排除国内 AI 分类，避免国内服务绕路。
+  const otherAiGroup = {
+    name: "🤖 其他 AI 服务", type: "select",
+    proxies: aiNodes
+  };
+
   const mediaGroup = {
     name: "🎬 国际媒体", type: "select",
     proxies: ["♻️ 全局自动", "🎯 全局分流"].concat(REGION_NAMES)
@@ -171,7 +177,7 @@ function main(config, name) {
   const adsGroup = { name: "🚫 广告拦截", type: "select", proxies: ["REJECT", "DIRECT"] };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, mainGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, mainGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   config["rules"] = [
@@ -217,29 +223,60 @@ function main(config, name) {
     // 仅当上面的 Claude 策略不支持 UDP、内核继续向下匹配时触发，避免换出口或直连。
     "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN-SUFFIX,sentry.io),(DOMAIN-SUFFIX,statsigapi.net),(DOMAIN-KEYWORD,datadog),(DOMAIN-KEYWORD,sift),(DOMAIN-SUFFIX,intercom.io),(DOMAIN-SUFFIX,intercomcdn.com),(DOMAIN,cdn.usefathom.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT",
 
-    // OpenAI / 其他 AI 服务（Google 系服务转入下方独立组）
+    // OpenAI：官方一方域名保持独立出口；不把共享的 Stripe/Cloudflare/Intercom 整站强行归组。
     "GEOSITE,openai,✨ OpenAI/AI",
     "DOMAIN-SUFFIX,openai.com,✨ OpenAI/AI",
     "DOMAIN-SUFFIX,chatgpt.com,✨ OpenAI/AI",
-    "DOMAIN-SUFFIX,perplexity.ai,✨ OpenAI/AI",
+    "DOMAIN-SUFFIX,oaistatic.com,✨ OpenAI/AI",
+    "DOMAIN-SUFFIX,oaiusercontent.com,✨ OpenAI/AI",
+    "DOMAIN-SUFFIX,oaistatsig.com,✨ OpenAI/AI",
+    "DOMAIN-SUFFIX,openaimerge.com,✨ OpenAI/AI",
+    // OpenAI 节点不支持 UDP 时拒绝，让应用回退 TCP，不允许落入普通国外组。
+    "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT",
+
+    // Google 全家桶 / Gemini / Antigravity 独立出口；cloudcode-pa 是 Antigravity 后端关键词。
     "DOMAIN-SUFFIX,gemini.google.com,🔷 Google/Gemini/Antigravity",
     "DOMAIN-SUFFIX,generativelanguage.googleapis.com,🔷 Google/Gemini/Antigravity",
-    "DOMAIN-SUFFIX,cursor.sh,✨ OpenAI/AI",
-    "DOMAIN-SUFFIX,cursor.com,✨ OpenAI/AI",
-    "DOMAIN-SUFFIX,huggingface.co,✨ OpenAI/AI",
-    // OpenAI/AI 节点不支持 UDP 时拒绝，让应用回退 TCP，不允许落入普通国外组。
-    "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,huggingface.co)))),REJECT",
-    // Google AI / Antigravity 独立出口；cloudcode-pa 是 Antigravity 的后端服务域名关键词。
     "DOMAIN-KEYWORD,antigravity,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,cloudcode-pa,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,makersuite,🔷 Google/Gemini/Antigravity",
+    "GEOSITE,youtube,🔷 Google/Gemini/Antigravity",
+    "GEOSITE,google,🔷 Google/Gemini/Antigravity",
+    // Google 组节点不支持 UDP 时拒绝，避免 QUIC 改走其它国家节点或直连。
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT",
 
-    // Kiro / AWS 使用普通国外代理。
-    "DOMAIN-SUFFIX,desktop-release.q.us-east-1.amazonaws.com,🎯 全局分流",
-    "DOMAIN-SUFFIX,kiro.dev,🎯 全局分流",
-    "DOMAIN-SUFFIX,aws.dev,🎯 全局分流",
-    "DOMAIN-SUFFIX,amazonaws.com,🎯 全局分流",
-    "DOMAIN-SUFFIX,awsapps.com,🎯 全局分流",
+    // 其他境外 AI：先列官方/常用主域名，再由维护中的 GeoSite 分类补齐新服务。
+    "DOMAIN-SUFFIX,perplexity.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,pplx.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,cursor.sh,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,cursor.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,cursorapi.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,cursor-cdn.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,huggingface.co,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,hf.co,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,x.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,grok.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,kiro.dev,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,kiro.aws.dev,🤖 其他 AI 服务",
+    "DOMAIN,q.us-east-1.amazonaws.com,🤖 其他 AI 服务",
+    "DOMAIN,q.eu-central-1.amazonaws.com,🤖 其他 AI 服务",
+    "DOMAIN,cognito-identity.us-east-1.amazonaws.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,mistral.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,cohere.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,poe.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,character.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,midjourney.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,openrouter.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,replicate.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,together.ai,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,groq.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,elevenlabs.io,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,manus.im,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,codeium.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,windsurf.com,🤖 其他 AI 服务",
+    "GEOSITE,category-ai-!cn,🤖 其他 AI 服务",
+    // 其他 AI 节点不支持 UDP 时同样失败关闭，不允许继续落入普通国外组。
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,pplx.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,cursorapi.com),(DOMAIN-SUFFIX,cursor-cdn.com),(DOMAIN-SUFFIX,huggingface.co),(DOMAIN-SUFFIX,hf.co),(DOMAIN-SUFFIX,x.ai),(DOMAIN-SUFFIX,grok.com),(DOMAIN-SUFFIX,kiro.dev),(DOMAIN-SUFFIX,kiro.aws.dev),(DOMAIN,q.us-east-1.amazonaws.com),(DOMAIN,q.eu-central-1.amazonaws.com),(DOMAIN,cognito-identity.us-east-1.amazonaws.com),(GEOSITE,category-ai-!cn)))),REJECT",
 
     // 社交 / 媒体（折叠，无独立组）
     "GEOSITE,telegram,🎯 全局分流",
@@ -247,7 +284,6 @@ function main(config, name) {
     "GEOIP,telegram,🎯 全局分流,no-resolve",
     "GEOSITE,netflix,🎬 国际媒体",
     "GEOSITE,disney,🎬 国际媒体",
-    "GEOSITE,youtube,🔷 Google/Gemini/Antigravity",
     // 非通用服务的个人偏好统一放到订阅右键的「编辑规则 / 编辑代理组」中维护。
     // 通用核不包含任何个人服务规则，未单独配置的流量继续进入下方通用兜底。
 
@@ -261,10 +297,7 @@ function main(config, name) {
     "DOMAIN-SUFFIX,ghcr.io,🎯 全局分流",
     "DOMAIN-SUFFIX,githubcopilot.com,🎯 全局分流",
 
-    // 厂商规则（Google 使用独立组，Apple 直连）
-    "GEOSITE,google,🔷 Google/Gemini/Antigravity",
-    // Google 组节点不支持 UDP 时拒绝，避免 QUIC 改走其它国家节点或直连。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT",
+    // 厂商规则（Google 已在 AI 规则区固定独立组，Apple 直连）
     "GEOSITE,apple,DIRECT",
     // 微软：国内可达的服务（@cn：dynamics.cn / lync.cn / microsoftonline-m.cn 等）直连，
     // 其余（海外）微软走代理 —— 海外 IP 一律走全局分流。@cn 必须排在 microsoft 前。

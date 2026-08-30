@@ -5,6 +5,7 @@
 - 局域网和国内网站直连。
 - 广告与追踪请求拒绝。
 - Claude、OpenAI、Google/Gemini/Antigravity 使用相互独立的美台节点组。
+- Perplexity、Cursor、Hugging Face、Grok、Kiro 等境外 AI 统一进入 `🤖 其他 AI 服务`。
 - 其他国外及未识别流量走代理。
 
 > 这些文件只提供配置与分流规则，不提供代理节点。使用前需要准备兼容相应客户端的节点订阅。
@@ -13,11 +14,22 @@
 
 ### 让 AI 服务保持稳定、可控的出口
 
-Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组，不会因为普通网页、下载或流媒体的线路切换而一起改变出口。三个 AI 组只展示美国和台湾具体节点，并默认采用手动选择，适合长期固定同一节点。
+Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组；其余境外 AI 使用第四个统一策略组。它们不会因为普通网页、下载或流媒体的线路切换而一起改变出口。四个 AI 组只展示美国和台湾具体节点，并默认采用手动选择，适合长期固定同一节点。
 
 这样可以减少会话过程中出口地区或 IP 频繁变化导致的重新登录、连接中断和异常验证风险。但配置不能保证账号绝对不触发风控，最终效果仍取决于节点质量、IP 信誉、账号地区和使用行为。
 
-Clash/Mihomo 脚本还对三个 AI 组采用 UDP 失败关闭：所选 AI 节点支持 UDP 时照常按组转发；不支持时直接拒绝该 AI UDP，让应用回退到 TCP，而不是改走普通代理或直连。Shadowrocket 则通过 `udp-policy-not-supported-behaviour = REJECT` 和代理 QUIC 阻断实现同类保护。
+Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点支持 UDP 时照常按组转发；不支持时直接拒绝该 AI UDP，让应用回退到 TCP，而不是改走普通代理或直连。Shadowrocket 则通过 `udp-policy-not-supported-behaviour = REJECT` 和代理 QUIC 阻断实现同类保护。
+
+服务归属如下：
+
+| 策略组 | 主要范围 |
+|---|---|
+| `🧠 Claude` | Claude、Anthropic API 与一方资源 |
+| `✨ OpenAI/AI` | ChatGPT、OpenAI API、Codex 与一方资源 |
+| `🔷 Google/Gemini/Antigravity` | Google 登录和全家桶、Gemini、Antigravity、YouTube |
+| `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Mistral、Poe、Cohere、OpenRouter 等境外 AI |
+
+Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用显式服务域名，便于审计和排错。国内 AI 不进入该统一组，仍按国内直连规则处理。
 
 ### 国内直连，国外代理
 
@@ -31,7 +43,7 @@ Shadowrocket 配置使用维护中的广告域名集；Clash/Mihomo 脚本使用
 
 电脑、Android 和 Apple 设备虽然使用不同客户端和配置格式，但都遵循相同目标：
 
-- Claude、OpenAI、Google 使用独立美台出口。
+- Claude、OpenAI、Google 使用独立美台出口，其他境外 AI 使用统一美台出口。
 - 国内和局域网直连。
 - 其他国外流量代理。
 - 广告请求拒绝。
@@ -46,9 +58,17 @@ Clash Verge Rev 和 FlClash 通过脚本在节点订阅加载后重建策略组�
 
 仓库只保存公开分流逻辑，不保存机场订阅 URL、节点密码或私有网络配置。你可以检查全部规则，并把真实订阅凭据保留在自己的客户端或本地 YAML 中。
 
-## 先验证三个 AI 出口
+## 账号地区限制与社区风险信号
 
-出口检测是配置完成后的关键验收步骤。Claude、OpenAI、Google/Gemini/Antigravity 使用三个相互独立的策略组，必须分别检查，不能只验证浏览器显示的普通公网 IP。
+官方资料能确认的是：Anthropic 会使用 IP 等信号判断国家或地区并执行支持地区政策；OpenAI 可能阻止来自不支持地区的注册或 API 访问；Gemini API/AI Studio 也只在列出的地区开放。对应资料见 [Anthropic 位置说明](https://privacy.claude.com/en/articles/11186740-does-claude-use-my-location)、[Anthropic 支持地区执法说明](https://www.anthropic.com/transparency/system-trust-reporting)、[OpenAI 不支持地区说明](https://help.openai.com/en/articles/8983035-why-can-t-i-sign-up-due-to-unsupported-country)和 [Gemini 可用地区](https://ai.google.dev/gemini-api/docs/available-regions)。
+
+X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、第三方 OAuth、短期跨地区切换后被验证或停用的用户报告，例如 [Antigravity 第三方 OAuth 停用讨论](https://www.reddit.com/r/google_antigravity/comments/1swz0rm/this_service_has_been_disabled_in_this_account)、[Cursor 地区限制讨论](https://www.reddit.com/r/cursor/comments/1smvuax/banned_from_cursor_two_days_after_paying_60_no)、[Grok 与 VPN 讨论](https://www.reddit.com/r/grok/comments/1vipc62/grok_is_banning_people_for_using_a_vpn)、[Antigravity 账号国家经验帖](https://x.com/Jimmy_JingLv/status/2004592735530160589)和 [Perplexity VPN 讨论](https://news.ycombinator.com/item?id=38698782)。这些是社区个案，不等于厂商公开规则，也不能单独证明封禁原因。
+
+本配置能做的是固定网络出口并避免协议回落串到其他国家；它不能修复账号共享、多账号绕限额、第三方工具违反条款、付款资料不一致或账号本身已被限制。使用时仍应遵守服务条款，并长期固定信誉较好的支持地区节点。
+
+## 先验证四个 AI 出口
+
+出口检测是配置完成后的关键验收步骤。Claude、OpenAI、Google/Gemini/Antigravity 和其他境外 AI 使用四个相互隔离的策略组，必须分别检查，不能只验证浏览器显示的普通公网 IP。
 
 ### Claude
 
@@ -83,9 +103,16 @@ Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国
 
 本仓库会把 Google 登录、Gmail、Drive、Gemini、Antigravity、YouTube 等 Google 流量统一送入该策略组，避免同一账号同时从不同国家出口访问。Google 官方公开资料没有写明“出口 IP 必须与账号国家完全相同”是所有产品的统一硬性规则，因此这里将两者一致作为稳定性强建议，而不是官方保证。
 
+### 其他 AI 服务
+
+1. 在 `🤖 其他 AI 服务` 中固定一个美国或台湾具体节点并重新连接。
+2. 实际打开你使用的服务并完成一次请求，例如 Perplexity 搜索、Cursor Agent、Grok 对话或 Kiro 对话。
+3. 从客户端连接日志确认相应主域名命中 `🤖 其他 AI 服务`，没有进入 `✨ OpenAI/AI` 或普通国外代理。
+4. Grok 独立站和 xAI API 会进入该组；整个 `x.com` 仍走普通国外代理，避免把全部 X 图片与视频流量绑到 AI 节点。若必须让 Grok-in-X 与 xAI 完全同出口，可在客户端个人规则中把 `x.com` 也指向本组。
+
 ### 验收标准与安全提示
 
-- 三个策略组都必须单独固定节点、实际发起服务请求，并在客户端连接日志中命中正确分组。
+- 四个策略组都必须单独固定节点、实际发起服务请求，并在客户端连接日志中命中正确分组。
 - 检测结果、实际服务和客户端日志三者的出口国家应一致；任一不一致都先排查规则、IPv6、DNS 或 WebRTC 泄露。
 - 第三方检测页的评分和标签只适合辅助比较节点，不代表厂商官方判定，也不能保证账号不会触发验证或风控。
 - 不要在任何检测页面输入账号密码、订阅链接或节点凭据。
@@ -140,6 +167,7 @@ https://raw.githubusercontent.com/wikieden/freeroad/main/shadowrocket-global.con
    - `🧠 Claude`
    - `✨ OpenAI/AI`
    - `🔷 Google/Gemini/Antigravity`
+   - `🤖 其他 AI 服务`
 7. 分别选择一个美国或台湾具体节点，并保持 Rule 模式。
 
 ### 更新脚本
@@ -167,7 +195,7 @@ Clash Verge Rev 的全局扩展脚本是本地编辑项。仓库脚本更新后�
 
 7. 保存为 `Freeroad Global`。
 8. 返回当前订阅的覆写页面，选中该脚本。
-9. 点击“预览”，确认三个 AI 策略组和规则已经生成。
+9. 点击“预览”，确认四个 AI 策略组和规则已经生成。
 10. 应用配置并重启 VPN。
 
 ### 更新脚本
@@ -193,7 +221,7 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 5. 下载后选中该配置，并点击“使用配置”。
 6. 将“全局路由”设置为“配置”。
-7. 打开代理分组，分别为 Claude、OpenAI、Google 三组固定一个美国或台湾节点。
+7. 打开代理分组，分别为 Claude、OpenAI、Google、其他 AI 四组固定一个美国或台湾节点。
 
 ### 本地文件导入
 
@@ -229,8 +257,8 @@ https://johnshall.github.io/Shadowrocket-ADBlock-Rules-Forever/sr_top500_banlist
 
 | 配置 | 未匹配网站 | AI 独立美台组 | 广告过滤 |
 |---|---|---|---|
-| `shadowrocket-global.conf` | 国外代理 | Claude、OpenAI、Google 三个独立组 | `AdvertisingLite` |
-| Johnshall 黑名单 + 广告 | 默认直连 | 无本仓库的三个独立 AI 组 | Johnshall 聚合规则 |
+| `shadowrocket-global.conf` | 国外代理 | Claude、OpenAI、Google 独立组 + 其他 AI 统一组 | `AdvertisingLite` |
+| Johnshall 黑名单 + 广告 | 默认直连 | 无本仓库的四个 AI 策略组 | Johnshall 聚合规则 |
 
 Johnshall 文件是一份完整配置，不是可直接叠加到 `shadowrocket-global.conf` 的模块。建议把两份配置都下载到 Shadowrocket，按场景切换；如果选择 Johnshall 配置，本仓库的 AI 独立策略组不会生效。
 
@@ -276,7 +304,7 @@ proxy-providers:
 3. 打开“配置/Profiles”→ `+`。
 4. 选择“文件/File”，选中 YAML。
 5. 激活导入的配置。
-6. 进入代理组，固定三个 AI 组的美台节点。
+6. 进入代理组，固定四个 AI 组的美台节点。
 7. 保持 Rule 模式并启动 VPN。
 
 ### URL 导入步骤

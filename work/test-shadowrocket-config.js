@@ -16,7 +16,7 @@ for (const section of ["[General]", "[Proxy Group]", "[Rule]"]) {
 for (const prohibitedSection of ["[MITM]", "[Script]", "[URL Rewrite]", "[Header Rewrite]", "[Body Rewrite]"]) {
   assert.equal(activeLines.includes(prohibitedSection), false, `${prohibitedSection} is out of scope`);
 }
-assert.doesNotMatch(source, /公司|内网|relay|Kiro/i);
+assert.doesNotMatch(source, /公司|内网|relay/i);
 assert.doesNotMatch(source, /(?:password|token|secret)\s*=/i);
 
 const proxyGroupStart = activeLines.indexOf("[Proxy Group]") + 1;
@@ -24,11 +24,11 @@ const ruleStart = activeLines.indexOf("[Rule]");
 const groupLines = activeLines.slice(proxyGroupStart, ruleStart);
 const groupNames = new Set(groupLines.map((line) => line.split("=")[0].trim()));
 
-for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🎯 国外代理"]) {
+for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务", "🎯 国外代理"]) {
   assert.ok(groupNames.has(groupName), `missing proxy group: ${groupName}`);
 }
 
-for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity"]) {
+for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务"]) {
   const line = groupLines.find((candidate) => candidate.startsWith(`${groupName} =`));
   assert.match(line, /=\s*select,/);
   assert.match(line, /policy-regex-filter=/);
@@ -71,6 +71,15 @@ const aiIndices = [
   indexOfRule("Gemini/Gemini.list,🔷 Google/Gemini/Antigravity"),
   indexOfRule("YouTube/YouTube.list,🔷 Google/Gemini/Antigravity")
 ];
+for (const fragment of [
+  "DOMAIN-SUFFIX,perplexity.ai,🤖 其他 AI 服务",
+  "DOMAIN-SUFFIX,cursorapi.com,🤖 其他 AI 服务",
+  "DOMAIN-SUFFIX,huggingface.co,🤖 其他 AI 服务",
+  "DOMAIN-SUFFIX,grok.com,🤖 其他 AI 服务",
+  "DOMAIN-SUFFIX,kiro.dev,🤖 其他 AI 服务"
+]) {
+  aiIndices.push(indexOfRule(fragment));
+}
 const advertisingIndex = indexOfRule("AdvertisingLite/AdvertisingLite.list,REJECT");
 const chinaIndex = indexOfRule("China/China.list,DIRECT");
 assert.ok(aiIndices.every((index) => index < advertisingIndex), "AI rules must precede advertising");
@@ -80,8 +89,11 @@ assert.ok(chinaIndex < ruleLines.length - 1, "China direct rules must precede FI
 for (const expectedRule of [
   "DOMAIN-SUFFIX,anthropic.com,🧠 Claude",
   "DOMAIN-SUFFIX,openai.com,✨ OpenAI/AI",
+  "DOMAIN-SUFFIX,oaistatsig.com,✨ OpenAI/AI",
   "DOMAIN-SUFFIX,google.com,🔷 Google/Gemini/Antigravity",
   "DOMAIN-KEYWORD,antigravity,🔷 Google/Gemini/Antigravity",
+  "DOMAIN-SUFFIX,pplx.ai,🤖 其他 AI 服务",
+  "DOMAIN,q.us-east-1.amazonaws.com,🤖 其他 AI 服务",
   "GEOIP,CN,DIRECT"
 ]) {
   assert.ok(ruleLines.includes(expectedRule), `missing rule: ${expectedRule}`);

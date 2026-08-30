@@ -34,15 +34,19 @@ assert.ok(twice.rules.includes("IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve")
 assert.ok(twice.rules.includes("IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve"));
 
 const claudeUdpGuard = "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN-SUFFIX,sentry.io),(DOMAIN-SUFFIX,statsigapi.net),(DOMAIN-KEYWORD,datadog),(DOMAIN-KEYWORD,sift),(DOMAIN-SUFFIX,intercom.io),(DOMAIN-SUFFIX,intercomcdn.com),(DOMAIN,cdn.usefathom.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT";
-const openAiUdpGuard = "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,huggingface.co)))),REJECT";
+const openAiUdpGuard = "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT";
 const googleUdpGuard = "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT";
+const otherAiUdpGuard = "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,pplx.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,cursorapi.com),(DOMAIN-SUFFIX,cursor-cdn.com),(DOMAIN-SUFFIX,huggingface.co),(DOMAIN-SUFFIX,hf.co),(DOMAIN-SUFFIX,x.ai),(DOMAIN-SUFFIX,grok.com),(DOMAIN-SUFFIX,kiro.dev),(DOMAIN-SUFFIX,kiro.aws.dev),(DOMAIN,q.us-east-1.amazonaws.com),(DOMAIN,q.eu-central-1.amazonaws.com),(DOMAIN,cognito-identity.us-east-1.amazonaws.com),(GEOSITE,category-ai-!cn)))),REJECT";
 
-for (const guard of [claudeUdpGuard, openAiUdpGuard, googleUdpGuard]) {
+for (const guard of [claudeUdpGuard, openAiUdpGuard, googleUdpGuard, otherAiUdpGuard]) {
   assert.equal(twice.rules.filter((rule) => rule === guard).length, 1, `missing UDP fail-closed guard: ${guard}`);
 }
 assert.ok(twice.rules.indexOf("GEOSITE,anthropic,🧠 Claude") < twice.rules.indexOf(claudeUdpGuard));
 assert.ok(twice.rules.indexOf(claudeUdpGuard) < twice.rules.indexOf("GEOSITE,openai,✨ OpenAI/AI"));
-assert.ok(twice.rules.indexOf("DOMAIN-SUFFIX,huggingface.co,✨ OpenAI/AI") < twice.rules.indexOf(openAiUdpGuard));
+assert.ok(twice.rules.indexOf("DOMAIN-SUFFIX,openaimerge.com,✨ OpenAI/AI") < twice.rules.indexOf(openAiUdpGuard));
+assert.ok(twice.rules.indexOf(openAiUdpGuard) < twice.rules.indexOf("GEOSITE,google,🔷 Google/Gemini/Antigravity"));
 assert.ok(twice.rules.indexOf("GEOSITE,google,🔷 Google/Gemini/Antigravity") < twice.rules.indexOf(googleUdpGuard));
-assert.ok(twice.rules.indexOf(googleUdpGuard) < twice.rules.indexOf("GEOSITE,apple,DIRECT"));
+assert.ok(twice.rules.indexOf(googleUdpGuard) < twice.rules.indexOf("DOMAIN-SUFFIX,perplexity.ai,🤖 其他 AI 服务"));
+assert.ok(twice.rules.indexOf("GEOSITE,category-ai-!cn,🤖 其他 AI 服务") < twice.rules.indexOf(otherAiUdpGuard));
+assert.ok(twice.rules.indexOf(otherAiUdpGuard) < twice.rules.indexOf("GEOSITE,apple,DIRECT"));
 console.log("PASS: Keep Alive fields and repeated execution");
