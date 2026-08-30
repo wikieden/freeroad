@@ -1,6 +1,6 @@
 // Define main function (script entry)
 // ============================================================================
-// Clash Verge 全局扩展脚本 —— 公开通用版 v2.2（Claude 稳定优化版）
+// Clash Verge 全局扩展脚本 —— 公开通用版 v2.3（Windows 校验兼容版）
 // 引擎：Boa/QuickJS（无 fs / 无网络，仅 console）。入口 main(config, name)。
 // ----------------------------------------------------------------------------
 // 这是「通用层」：节点按地区归类 + DNS/防泄露 + Claude/OpenAI/Google 独立风控分流。
@@ -210,10 +210,9 @@ function main(config, name) {
     "DOMAIN-SUFFIX,intercom.io,🧠 Claude",
     "DOMAIN-SUFFIX,intercomcdn.com,🧠 Claude",
     "DOMAIN,cdn.usefathom.com,🧠 Claude",
-    // IP 段 + ASN 兜底（域名规则失效、ECH 加密 SNI 时的最后防线）
+    // IP 段兜底（不使用 IP-ASN，避免 Windows 首次校验依赖额外下载 ASN.mmdb）
     "IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve",
     "IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve",
-    "IP-ASN,399358,🧠 Claude,no-resolve",
     "GEOSITE,anthropic,🧠 Claude", // geosite 分类兜底
 
     // OpenAI / 其他 AI 服务（Google 系服务转入下方独立组）

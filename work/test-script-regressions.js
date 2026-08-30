@@ -25,4 +25,11 @@ assert.equal(twice["disable-keep-alive"], false);
 assert.equal(Object.hasOwn(twice, "tcp-keep-alive"), false);
 assert.equal(twice.rules.filter((rule) => rule === marker).length, 1);
 assert.equal(twice.rules.filter((rule) => rule === personalRule).length, 1);
+assert.equal(
+  twice.rules.some((rule) => rule.startsWith("IP-ASN,")),
+  false,
+  "public script must not require the separately downloaded ASN.mmdb during Windows validation"
+);
+assert.ok(twice.rules.includes("IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve"));
+assert.ok(twice.rules.includes("IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve"));
 console.log("PASS: Keep Alive fields and repeated execution");
