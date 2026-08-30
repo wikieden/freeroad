@@ -4,7 +4,7 @@
 
 - 局域网和国内网站直连。
 - 广告与追踪请求拒绝。
-- Claude、OpenAI、Google/Gemini/Antigravity 使用相互独立的美台节点组。
+- Claude、OpenAI、Google/Gemini/Antigravity 使用相互独立的国家选择组。
 - Perplexity、Cursor、Hugging Face、Grok、Kiro 等境外 AI 统一进入 `🤖 其他 AI 服务`。
 - 其他国外及未识别流量走代理。
 
@@ -14,7 +14,9 @@
 
 ### 让 AI 服务保持稳定、可控的出口
 
-Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组；其余境外 AI 使用第四个统一策略组。它们不会因为普通网页、下载或流媒体的线路切换而一起改变出口。四个 AI 组只展示美国和台湾具体节点，并默认采用手动选择，适合长期固定同一节点。
+Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组；其余境外 AI 使用第四个统一策略组。选择路径统一为 `AI 服务组 → 国家节点组 → 自动测速/具体节点`，不会因为普通网页、下载或流媒体线路切换而跨国家改变出口。
+
+前三个 AI 组提供美国、台湾、日本、新加坡；`🤖 其他 AI 服务` 额外提供欧洲。进入国家组后默认使用该国家的自动测速，也可以固定一个具体节点。自动测速只在同一国家内部进行，但仍可能更换出口 IP；账号稳定性优先时应改选具体节点。
 
 这样可以减少会话过程中出口地区或 IP 频繁变化导致的重新登录、连接中断和异常验证风险。但配置不能保证账号绝对不触发风控，最终效果仍取决于节点质量、IP 信誉、账号地区和使用行为。
 
@@ -22,12 +24,12 @@ Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点
 
 服务归属如下：
 
-| 策略组 | 主要范围 |
-|---|---|
-| `🧠 Claude` | Claude、Anthropic API 与一方资源 |
-| `✨ OpenAI/AI` | ChatGPT、OpenAI API、Codex 与一方资源 |
-| `🔷 Google/Gemini/Antigravity` | Google 登录和全家桶、Gemini、Antigravity、YouTube |
-| `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Mistral、Poe、Cohere、OpenRouter 等境外 AI |
+| 策略组 | 主要范围 | 可选国家组 |
+|---|---|---|
+| `🧠 Claude` | Claude、Anthropic API 与一方资源 | 美国、台湾、日本、新加坡 |
+| `✨ OpenAI/AI` | ChatGPT、OpenAI API、Codex 与一方资源 | 美国、台湾、日本、新加坡 |
+| `🔷 Google/Gemini/Antigravity` | Google 登录和全家桶、Gemini、Antigravity、YouTube | 美国、台湾、日本、新加坡 |
+| `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Mistral、Poe、Cohere、OpenRouter 等境外 AI | 美国、台湾、日本、新加坡、欧洲 |
 
 Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用显式服务域名，便于审计和排错。国内 AI 不进入该统一组，仍按国内直连规则处理。
 
@@ -43,7 +45,7 @@ Shadowrocket 配置使用维护中的广告域名集；Clash/Mihomo 脚本使用
 
 电脑、Android 和 Apple 设备虽然使用不同客户端和配置格式，但都遵循相同目标：
 
-- Claude、OpenAI、Google 使用独立美台出口，其他境外 AI 使用统一美台出口。
+- Claude、OpenAI、Google 使用独立国家出口，其他境外 AI 使用统一服务组并可额外选择欧洲。
 - 国内和局域网直连。
 - 其他国外流量代理。
 - 广告请求拒绝。
@@ -74,7 +76,7 @@ X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、�
 
 检测地址：[Net.Coffee Claude AI IP 风险检测](https://ip.net.coffee/claude/)
 
-1. 在 `🧠 Claude` 中固定一个美国或台湾具体节点，重新连接并保持 Rule/规则模式。
+1. 在 `🧠 Claude` 中选择美国、台湾、日本或新加坡国家组，再选择自动测速或固定具体节点；重新连接并保持 Rule/规则模式。
 2. 打开检测页，确认“Claude AI 出口 IP”的国家与所选节点一致。
 3. 同时检查 Claude 支持地区、IP 信任评分、DNS 和 WebRTC/UDP 泄露提示。
 4. 实际打开 Claude 或执行一次 Claude Code 请求，再从客户端连接日志确认命中 `🧠 Claude`。
@@ -83,7 +85,7 @@ X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、�
 
 检测地址：[Net.Coffee ChatGPT · Codex IP 风险检测](https://ip.net.coffee/gpt/)
 
-1. 在 `✨ OpenAI/AI` 中固定一个美国或台湾具体节点并重新连接。
+1. 在 `✨ OpenAI/AI` 中选择美国、台湾、日本或新加坡国家组，再选择自动测速或固定具体节点并重新连接。
 2. 确认“ChatGPT 出口 IP”的国家与所选节点一致，并分别查看 `chatgpt.com` 与 `api.openai.com` 的连通性。
 3. 实际打开 ChatGPT 或发起一次 Codex/API 请求，再从客户端连接日志确认命中 `✨ OpenAI/AI`。
 
@@ -91,11 +93,11 @@ X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、�
 
 Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国家和地区](https://ai.google.dev/gemini-api/docs/available-regions)访问，[服务条款](https://ai.google.dev/gemini-api/terms)也写明只能在可用地区访问。[Gemini 隐私说明](https://support.google.com/gemini/answer/13594961?hl=zh-Hans)还说明服务会使用来自设备、IP 地址以及 Google 账号家庭/工作地址的位置信息。
 
-因此建议把 `🔷 Google/Gemini/Antigravity` 长期固定为一个支持地区的具体节点；如果 Google 账号国家是美国就固定美国节点，账号国家是台湾就固定台湾节点。不要在登录、Gemini 对话或 Antigravity 任务过程中在美国、台湾或其他国家节点之间来回切换。
+因此建议先在 `🔷 Google/Gemini/Antigravity` 选择与账号国家一致且受支持的美国、台湾、日本或新加坡国家组，再在国家组内固定具体节点。不要在登录、Gemini 对话或 Antigravity 任务过程中跨国家切换；若使用国家自动测速，也要知道它可能在同一国家内更换具体出口 IP。
 
 验证顺序：
 
-1. 固定 Google 组节点并重新连接，保持 Rule/规则模式。
+1. 选择 Google 国家组及其自动/具体节点并重新连接，保持 Rule/规则模式。
 2. 打开 [Google 搜索“what is my ip”](https://www.google.com/search?q=what+is+my+ip)；如果结果页显示公网 IP，确认其国家符合预期。
 3. 分别登录 Gemini 与 Antigravity，并各完成一次真实模型请求；只能打开登录页不算验证完成。
 4. 查看客户端连接日志，确认 `google.com`、`googleapis.com`、`antigravity`、`cloudcode-pa` 等连接命中 `🔷 Google/Gemini/Antigravity`。
@@ -105,14 +107,14 @@ Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国
 
 ### 其他 AI 服务
 
-1. 在 `🤖 其他 AI 服务` 中固定一个美国或台湾具体节点并重新连接。
+1. 在 `🤖 其他 AI 服务` 中选择美国、台湾、日本、新加坡或欧洲国家组，再选择自动测速或固定具体节点并重新连接。
 2. 实际打开你使用的服务并完成一次请求，例如 Perplexity 搜索、Cursor Agent、Grok 对话或 Kiro 对话。
 3. 从客户端连接日志确认相应主域名命中 `🤖 其他 AI 服务`，没有进入 `✨ OpenAI/AI` 或普通国外代理。
 4. Grok 独立站和 xAI API 会进入该组；整个 `x.com` 仍走普通国外代理，避免把全部 X 图片与视频流量绑到 AI 节点。若必须让 Grok-in-X 与 xAI 完全同出口，可在客户端个人规则中把 `x.com` 也指向本组。
 
 ### 验收标准与安全提示
 
-- 四个策略组都必须单独固定节点、实际发起服务请求，并在客户端连接日志中命中正确分组。
+- 四个策略组都必须单独选择国家和自动/具体节点、实际发起服务请求，并在客户端连接日志中命中正确分组。
 - 检测结果、实际服务和客户端日志三者的出口国家应一致；任一不一致都先排查规则、IPv6、DNS 或 WebRTC 泄露。
 - 第三方检测页的评分和标签只适合辅助比较节点，不代表厂商官方判定，也不能保证账号不会触发验证或风控。
 - 不要在任何检测页面输入账号密码、订阅链接或节点凭据。
@@ -168,7 +170,7 @@ https://raw.githubusercontent.com/wikieden/freeroad/main/shadowrocket-global.con
    - `✨ OpenAI/AI`
    - `🔷 Google/Gemini/Antigravity`
    - `🤖 其他 AI 服务`
-7. 分别选择一个美国或台湾具体节点，并保持 Rule 模式。
+7. 进入每个 AI 组选择国家，再在国家组内选择自动测速或具体节点，并保持 Rule 模式。
 
 ### 更新脚本
 
@@ -221,7 +223,7 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 5. 下载后选中该配置，并点击“使用配置”。
 6. 将“全局路由”设置为“配置”。
-7. 打开代理分组，分别为 Claude、OpenAI、Google、其他 AI 四组固定一个美国或台湾节点。
+7. 打开代理分组，分别为四个 AI 服务选择国家，再进入国家组选择自动测速或固定具体节点。
 
 ### 本地文件导入
 
@@ -255,7 +257,7 @@ https://johnshall.github.io/Shadowrocket-ADBlock-Rules-Forever/sr_top500_banlist
 
 它和本仓库配置的区别：
 
-| 配置 | 未匹配网站 | AI 独立美台组 | 广告过滤 |
+| 配置 | 未匹配网站 | AI 国家选择组 | 广告过滤 |
 |---|---|---|---|
 | `shadowrocket-global.conf` | 国外代理 | Claude、OpenAI、Google 独立组 + 其他 AI 统一组 | `AdvertisingLite` |
 | Johnshall 黑名单 + 广告 | 默认直连 | 无本仓库的四个 AI 策略组 | Johnshall 聚合规则 |
@@ -304,7 +306,7 @@ proxy-providers:
 3. 打开“配置/Profiles”→ `+`。
 4. 选择“文件/File”，选中 YAML。
 5. 激活导入的配置。
-6. 进入代理组，固定四个 AI 组的美台节点。
+6. 如果自行在完整 YAML 中复刻本仓库策略组，进入 AI 服务组选择国家，再在国家组内选择自动测速或固定节点。
 7. 保持 Rule 模式并启动 VPN。
 
 ### URL 导入步骤
@@ -327,7 +329,7 @@ clashmeta://install-config?url=<URL 编码后的完整 YAML 地址>
 
 ### AI 策略组为空
 
-订阅中没有名称可识别的美国或台湾节点。节点名应包含旗帜、`US`/`USA`、`TW`/`TWN`、`美国`、`台湾`、`Taiwan` 等关键词。
+订阅中没有名称可识别的美国、台湾、日本或新加坡节点。节点名应包含相应旗帜、国家代码或国家名称；例如 `US`/`USA`、`TW`/`TWN`、`JP`、`SG`、`美国`、`台湾`、`日本`、`新加坡`。只有欧洲节点时，前三个 AI 策略组仍无法创建。
 
 ### Claude、OpenAI 或 Google 没有进入独立组
 

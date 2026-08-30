@@ -24,26 +24,49 @@ const ruleStart = activeLines.indexOf("[Rule]");
 const groupLines = activeLines.slice(proxyGroupStart, ruleStart);
 const groupNames = new Set(groupLines.map((line) => line.split("=")[0].trim()));
 
-for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务", "🎯 国外代理"]) {
+for (const groupName of [
+  "🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务", "🎯 国外代理",
+  "🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点", "🇪🇺 欧洲节点",
+  "♻️ 美国自动", "♻️ 台湾自动", "♻️ 日本自动", "♻️ 新加坡自动", "♻️ 欧洲自动"
+]) {
   assert.ok(groupNames.has(groupName), `missing proxy group: ${groupName}`);
 }
 
-for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务"]) {
+const majorCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
+for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity"]) {
   const line = groupLines.find((candidate) => candidate.startsWith(`${groupName} =`));
   assert.match(line, /=\s*select,/);
-  assert.match(line, /policy-regex-filter=/);
-  assert.match(line, /(?:US|USA|美国|🇺🇸)/);
-  assert.match(line, /(?:TW|TWN|台湾|台灣|🇹🇼)/);
-  assert.doesNotMatch(line, /url-test|香港|日本|新加坡|韩国/);
+  assert.doesNotMatch(line, /policy-regex-filter=|url-test|欧洲节点/);
+  assert.deepEqual(line.match(/=\s*select,(.*),select=0$/)[1].split(","), majorCountries);
+}
 
-  const filter = line.match(/policy-regex-filter=(.*),select=0$/)[1].replace(/^\(\?i\)/, "");
-  const matcher = new RegExp(filter, "i");
-  for (const allowedNode of ["🇺🇸 US-A", "美国-洛杉矶-01", "🇹🇼 TW-A", "台湾-台北-01"]) {
-    assert.equal(matcher.test(allowedNode), true, `${groupName} must include ${allowedNode}`);
-  }
-  for (const rejectedNode of ["Russia-01", "Fukuoka-01", "日本-东京-01", "剩余流量 50 GB"]) {
-    assert.equal(matcher.test(rejectedNode), false, `${groupName} must exclude ${rejectedNode}`);
-  }
+const otherAiLine = groupLines.find((candidate) => candidate.startsWith("🤖 其他 AI 服务 ="));
+assert.deepEqual(
+  otherAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
+  majorCountries.concat("🇪🇺 欧洲节点")
+);
+
+const countryFixtures = [
+  { country: "🇺🇸 美国节点", automatic: "♻️ 美国自动", allowed: ["🇺🇸 US-A", "美国-洛杉矶-01"], rejected: ["Russia-01", "日本-东京-01", "美国-剩余流量 50 GB"] },
+  { country: "🌏 台湾节点", automatic: "♻️ 台湾自动", allowed: ["🇹🇼 TW-A", "台湾-台北-01"], rejected: ["Russia-01", "新加坡-A", "台湾-套餐到期"] },
+  { country: "🇯🇵 日本节点", automatic: "♻️ 日本自动", allowed: ["🇯🇵 JP-A", "日本-东京-01"], rejected: ["Russia-01", "Fukuoka-01", "日本-剩余流量 50 GB"] },
+  { country: "🇸🇬 新加坡节点", automatic: "♻️ 新加坡自动", allowed: ["🇸🇬 SG-A", "新加坡-A"], rejected: ["Russia-01", "台湾-A", "新加坡-官网公告"] },
+  { country: "🇪🇺 欧洲节点", automatic: "♻️ 欧洲自动", allowed: ["🇩🇪 DE-A", "英国-London-01"], rejected: ["Russia-01", "US-A", "德国-剩余流量 50 GB"] }
+];
+
+for (const { country, automatic, allowed, rejected } of countryFixtures) {
+  const countryLine = groupLines.find((candidate) => candidate.startsWith(`${country} =`));
+  const automaticLine = groupLines.find((candidate) => candidate.startsWith(`${automatic} =`));
+  assert.match(countryLine, new RegExp(`=\\s*select,${automatic},policy-regex-filter=`));
+  assert.match(automaticLine, /=\s*url-test,/);
+  assert.match(automaticLine, /policy-regex-filter=/);
+
+  const countryFilter = countryLine.match(/policy-regex-filter=(.*),select=0$/)[1];
+  const automaticFilter = automaticLine.match(/policy-regex-filter=(.*)$/)[1];
+  assert.equal(countryFilter, automaticFilter, `${country} and ${automatic} must use the same filter`);
+  const matcher = new RegExp(countryFilter.replace(/^\(\?i\)/, ""), "i");
+  for (const node of allowed) assert.equal(matcher.test(node), true, `${country} must include ${node}`);
+  for (const node of rejected) assert.equal(matcher.test(node), false, `${country} must exclude ${node}`);
 }
 
 const ruleLines = activeLines.slice(ruleStart + 1);

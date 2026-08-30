@@ -77,7 +77,7 @@ function main(config, name) {
   // 词边界 \b 是关键：避免 Russia→US（含 "us"）、Fukuoka→UK（含 "uk"）、Sweden→DE 这类子串误配。
   // 顺序即展示顺序：美国排最前，也是分类优先级（多匹配取第一个）。
   // auto:true = 该区做手自一体（默认自动测速、可手动钉）。现在全部地区都开。
-  // 美国、台湾地区组虽默认自动，但四个 AI 策略组都直接使用具体节点，不受地区自动测速影响。
+  // AI 策略组先选择国家组，再由国家组选择自动测速或具体节点；自动测速不会跨国家。
   const REGIONS = [
     { key: "🇺🇸 美国",  re: /美国|\bUSA?\b|United\s?States|America|洛杉矶|圣何塞|硅谷/i, auto: true },
     { key: "🇭🇰 香港",  re: /香港|\bHK\b|Hong\s?Kong/i, auto: true },
@@ -138,35 +138,38 @@ function main(config, name) {
     proxies: ["♻️ 全局自动", "DIRECT"].concat(REGION_NAMES)
   };
 
-  // OpenAI/AI：只允许美国、台湾具体节点；美国排前作为默认，台湾备用。
-  // 不提供全局分流、DIRECT 或其它地区回退，避免 AI 会话悄悄换出口。
-  const usNodes = buckets["🇺🇸 美国"];
-  const twNodes = buckets["🌏 台湾"];
-  const aiNodes = usNodes.concat(twNodes);
-  if (aiNodes.length === 0) {
-    throw new Error("✨ OpenAI/AI 需要至少一个美国或台湾节点；请检查订阅节点命名后重试。");
+  // 三大 AI 组只引用美、台、日、新国家组；进入国家组后再选自动或具体节点。
+  // 其它 AI 在同一范围上增加欧洲组。自动测速始终限制在已选择的国家内部。
+  const existingRegionGroup = (key) => buckets[key].length > 0 ? key + "节点" : null;
+  const majorAiRegionGroups = ["🇺🇸 美国", "🌏 台湾", "🇯🇵 日本", "🇸🇬 新加坡"]
+    .map(existingRegionGroup)
+    .filter(Boolean);
+  const europeRegionGroup = existingRegionGroup("🇪🇺 欧洲");
+  const otherAiRegionGroups = majorAiRegionGroups.concat(europeRegionGroup ? [europeRegionGroup] : []);
+  if (majorAiRegionGroups.length === 0) {
+    throw new Error("AI 策略组需要至少一个美国、台湾、日本或新加坡节点；请检查订阅节点命名后重试。");
   }
   const aiGroup = {
     name: "✨ OpenAI/AI", type: "select",
-    proxies: aiNodes
+    proxies: majorAiRegionGroups
   };
 
-  // Google / Gemini / Antigravity：复用美台低风控节点，并保持独立选择。
+  // Google / Gemini / Antigravity：独立选择国家组，避免与其它 AI 联动。
   const googleAiGroup = {
     name: "🔷 Google/Gemini/Antigravity", type: "select",
-    proxies: aiNodes
+    proxies: majorAiRegionGroups
   };
 
-  // Claude / Anthropic：复用美台低风控节点，独立策略组 + 全量域名规则，最大化降低风控概率
+  // Claude / Anthropic：独立策略组 + 全量域名规则，最大化降低风控概率。
   const claudeGroup = {
     name: "🧠 Claude", type: "select",
-    proxies: aiNodes
+    proxies: majorAiRegionGroups
   };
 
-  // 其他境外 AI：统一固定美台出口；明确排除国内 AI 分类，避免国内服务绕路。
+  // 其他境外 AI：在美、台、日、新之外提供欧洲国家组；国内 AI 仍不进入本组。
   const otherAiGroup = {
     name: "🤖 其他 AI 服务", type: "select",
-    proxies: aiNodes
+    proxies: otherAiRegionGroups
   };
 
   const mediaGroup = {
