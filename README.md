@@ -18,6 +18,8 @@ Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组；其�
 
 前三个 AI 组提供美国、台湾、日本、新加坡；`🤖 其他 AI 服务` 额外提供欧洲。进入国家组后默认使用该国家的自动测速，也可以固定一个具体节点。自动测速只在同一国家内部进行，但仍可能更换出口 IP；账号稳定性优先时应改选具体节点。
 
+为了减少常用服务的选择步骤，`🧠 Claude` 和 `✨ OpenAI/AI` 会在四个国家组之后，再直接列出美、台、日、新具体节点。国家组仍排在前面，所以默认行为不变；Google 和其他 AI 继续只显示国家组，避免列表过长。
+
 这样可以减少会话过程中出口地区或 IP 频繁变化导致的重新登录、连接中断和异常验证风险。但配置不能保证账号绝对不触发风控，最终效果仍取决于节点质量、IP 信誉、账号地区和使用行为。
 
 Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点支持 UDP 时照常按组转发；不支持时直接拒绝该 AI UDP，让应用回退到 TCP，而不是改走普通代理或直连。Shadowrocket 则通过 `udp-policy-not-supported-behaviour = REJECT` 和代理 QUIC 阻断实现同类保护。
@@ -76,7 +78,7 @@ X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、�
 
 检测地址：[Net.Coffee Claude AI IP 风险检测](https://ip.net.coffee/claude/)
 
-1. 在 `🧠 Claude` 中选择美国、台湾、日本或新加坡国家组，再选择自动测速或固定具体节点；重新连接并保持 Rule/规则模式。
+1. 在 `🧠 Claude` 中选择美国、台湾、日本或新加坡国家组，再选择自动测速或固定具体节点；也可以直接选择国家组后方的具体节点快捷入口。重新连接并保持 Rule/规则模式。
 2. 打开检测页，确认“Claude AI 出口 IP”的国家与所选节点一致。
 3. 同时检查 Claude 支持地区、IP 信任评分、DNS 和 WebRTC/UDP 泄露提示。
 4. 实际打开 Claude 或执行一次 Claude Code 请求，再从客户端连接日志确认命中 `🧠 Claude`。
@@ -85,7 +87,7 @@ X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、�
 
 检测地址：[Net.Coffee ChatGPT · Codex IP 风险检测](https://ip.net.coffee/gpt/)
 
-1. 在 `✨ OpenAI/AI` 中选择美国、台湾、日本或新加坡国家组，再选择自动测速或固定具体节点并重新连接。
+1. 在 `✨ OpenAI/AI` 中选择美国、台湾、日本或新加坡国家组，再选择自动测速或固定具体节点；也可以直接选择国家组后方的具体节点快捷入口并重新连接。
 2. 确认“ChatGPT 出口 IP”的国家与所选节点一致，并分别查看 `chatgpt.com` 与 `api.openai.com` 的连通性。
 3. 实际打开 ChatGPT 或发起一次 Codex/API 请求，再从客户端连接日志确认命中 `✨ OpenAI/AI`。
 
@@ -170,7 +172,7 @@ https://raw.githubusercontent.com/wikieden/freeroad/main/shadowrocket-global.con
    - `✨ OpenAI/AI`
    - `🔷 Google/Gemini/Antigravity`
    - `🤖 其他 AI 服务`
-7. 进入每个 AI 组选择国家，再在国家组内选择自动测速或具体节点，并保持 Rule 模式。
+7. 进入每个 AI 组选择国家，再在国家组内选择自动测速或具体节点；Claude、OpenAI 也可以直接选择其国家组后方的具体节点。保持 Rule 模式。
 
 ### 更新脚本
 
@@ -223,7 +225,7 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 5. 下载后选中该配置，并点击“使用配置”。
 6. 将“全局路由”设置为“配置”。
-7. 打开代理分组，分别为四个 AI 服务选择国家，再进入国家组选择自动测速或固定具体节点。
+7. 打开代理分组，分别为四个 AI 服务选择国家，再进入国家组选择自动测速或固定具体节点；Claude、OpenAI 也提供具体节点快捷入口。
 
 ### 本地文件导入
 

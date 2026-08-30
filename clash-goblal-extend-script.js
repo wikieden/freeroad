@@ -138,12 +138,16 @@ function main(config, name) {
     proxies: ["♻️ 全局自动", "DIRECT"].concat(REGION_NAMES)
   };
 
-  // 三大 AI 组只引用美、台、日、新国家组；进入国家组后再选自动或具体节点。
-  // 其它 AI 在同一范围上增加欧洲组。自动测速始终限制在已选择的国家内部。
+  // 三大 AI 组引用美、台、日、新国家组；Claude/OpenAI 再追加同范围具体节点快捷入口。
+  // 其它 AI 在国家组范围上增加欧洲。自动测速始终限制在已选择的国家内部。
   const existingRegionGroup = (key) => buckets[key].length > 0 ? key + "节点" : null;
-  const majorAiRegionGroups = ["🇺🇸 美国", "🌏 台湾", "🇯🇵 日本", "🇸🇬 新加坡"]
+  const majorAiRegionKeys = ["🇺🇸 美国", "🌏 台湾", "🇯🇵 日本", "🇸🇬 新加坡"];
+  const majorAiRegionGroups = majorAiRegionKeys
     .map(existingRegionGroup)
     .filter(Boolean);
+  const majorAiDirectNodes = majorAiRegionKeys
+    .reduce((nodes, key) => nodes.concat(buckets[key]), []);
+  const quickAiProxies = majorAiRegionGroups.concat(majorAiDirectNodes);
   const europeRegionGroup = existingRegionGroup("🇪🇺 欧洲");
   const otherAiRegionGroups = majorAiRegionGroups.concat(europeRegionGroup ? [europeRegionGroup] : []);
   if (majorAiRegionGroups.length === 0) {
@@ -151,7 +155,7 @@ function main(config, name) {
   }
   const aiGroup = {
     name: "✨ OpenAI/AI", type: "select",
-    proxies: majorAiRegionGroups
+    proxies: quickAiProxies
   };
 
   // Google / Gemini / Antigravity：独立选择国家组，避免与其它 AI 联动。
@@ -163,7 +167,7 @@ function main(config, name) {
   // Claude / Anthropic：独立策略组 + 全量域名规则，最大化降低风控概率。
   const claudeGroup = {
     name: "🧠 Claude", type: "select",
-    proxies: majorAiRegionGroups
+    proxies: quickAiProxies
   };
 
   // 其他境外 AI：在美、台、日、新之外提供欧洲国家组；国内 AI 仍不进入本组。

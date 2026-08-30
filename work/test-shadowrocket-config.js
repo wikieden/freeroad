@@ -33,14 +33,29 @@ for (const groupName of [
 }
 
 const majorCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
-for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity"]) {
+for (const groupName of ["🧠 Claude", "✨ OpenAI/AI"]) {
   const line = groupLines.find((candidate) => candidate.startsWith(`${groupName} =`));
   assert.match(line, /=\s*select,/);
-  assert.doesNotMatch(line, /policy-regex-filter=|url-test|欧洲节点/);
-  assert.deepEqual(line.match(/=\s*select,(.*),select=0$/)[1].split(","), majorCountries);
+  assert.match(line, /policy-regex-filter=/);
+  assert.doesNotMatch(line, /url-test|欧洲节点/);
+  assert.deepEqual(line.match(/=\s*select,(.*),policy-regex-filter=/)[1].split(","), majorCountries);
+
+  const filter = line.match(/policy-regex-filter=(.*),select=0$/)[1];
+  const matcher = new RegExp(filter.replace(/^\(\?i\)/, ""), "i");
+  for (const node of ["US-A", "台湾-A", "日本-A", "新加坡-A"]) {
+    assert.equal(matcher.test(node), true, `${groupName} must include quick node ${node}`);
+  }
+  for (const node of ["德国-A", "香港-A", "韩国-A", "美国-剩余流量 50 GB"]) {
+    assert.equal(matcher.test(node), false, `${groupName} must exclude quick node ${node}`);
+  }
 }
 
+const googleAiLine = groupLines.find((candidate) => candidate.startsWith("🔷 Google/Gemini/Antigravity ="));
+assert.doesNotMatch(googleAiLine, /policy-regex-filter=|url-test|欧洲节点/);
+assert.deepEqual(googleAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","), majorCountries);
+
 const otherAiLine = groupLines.find((candidate) => candidate.startsWith("🤖 其他 AI 服务 ="));
+assert.doesNotMatch(otherAiLine, /policy-regex-filter=|url-test/);
 assert.deepEqual(
   otherAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
   majorCountries.concat("🇪🇺 欧洲节点")
