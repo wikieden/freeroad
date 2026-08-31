@@ -27,9 +27,48 @@ const groupNames = new Set(groupLines.map((line) => line.split("=")[0].trim()));
 for (const groupName of [
   "🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务", "🎯 国外代理",
   "🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点", "🇪🇺 欧洲节点",
-  "♻️ 美国自动", "♻️ 台湾自动", "♻️ 日本自动", "♻️ 新加坡自动", "♻️ 欧洲自动"
+  "♻️ 美国自动", "♻️ 台湾自动", "♻️ 日本自动", "♻️ 新加坡自动", "♻️ 欧洲自动",
+  "♻️ 国外自动", "🌐 其他国家节点", "♻️ 其他国家自动"
 ]) {
   assert.ok(groupNames.has(groupName), `missing proxy group: ${groupName}`);
+}
+
+const foreignGroupLine = groupLines.find((candidate) => candidate.startsWith("🎯 国外代理 ="));
+assert.match(foreignGroupLine, /=\s*select,/);
+assert.deepEqual(
+  foreignGroupLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
+  [
+    "♻️ 国外自动", "🇺🇸 美国节点", "🌏 台湾节点", "🇭🇰 香港节点", "🇯🇵 日本节点",
+    "🇸🇬 新加坡节点", "🇰🇷 韩国节点", "🇪🇺 欧洲节点", "🌐 其他国家节点"
+  ]
+);
+
+const foreignAutoLine = groupLines.find((candidate) => candidate.startsWith("♻️ 国外自动 ="));
+assert.match(foreignAutoLine, /=\s*url-test,/);
+const foreignAutoFilter = foreignAutoLine.match(/policy-regex-filter=(.*)$/)[1];
+const foreignAutoMatcher = new RegExp(foreignAutoFilter.replace(/^\(\?i\)/, ""), "i");
+for (const node of ["US-A", "台湾-A", "加拿大-Toronto"]) {
+  assert.equal(foreignAutoMatcher.test(node), true, `foreign auto must include ${node}`);
+}
+for (const node of ["中国-上海", "回国-01", "加拿大-剩余流量 50 GB"]) {
+  assert.equal(foreignAutoMatcher.test(node), false, `foreign auto must exclude ${node}`);
+}
+
+const otherCountryLine = groupLines.find((candidate) => candidate.startsWith("🌐 其他国家节点 ="));
+const otherCountryAutoLine = groupLines.find((candidate) => candidate.startsWith("♻️ 其他国家自动 ="));
+assert.match(otherCountryLine, /=\s*select,♻️ 其他国家自动,policy-regex-filter=/);
+assert.match(otherCountryAutoLine, /=\s*url-test,/);
+const otherCountryFilter = otherCountryLine.match(/policy-regex-filter=(.*),select=0$/)[1];
+assert.equal(otherCountryAutoLine.match(/policy-regex-filter=(.*)$/)[1], otherCountryFilter);
+const otherCountryMatcher = new RegExp(otherCountryFilter.replace(/^\(\?i\)/, ""), "i");
+for (const node of ["🇨🇦 CA-Toronto", "澳大利亚-Sydney", "印度-Mumbai", "巴西-Sao-Paulo", "Russia-01"]) {
+  assert.equal(otherCountryMatcher.test(node), true, `other countries must include ${node}`);
+}
+for (const node of [
+  "US-A", "台湾-A", "香港-A", "日本-A", "新加坡-A", "韩国-A", "🇩🇪 DE-A",
+  "中国-上海", "回国-01", "加拿大-剩余流量 50 GB"
+]) {
+  assert.equal(otherCountryMatcher.test(node), false, `other countries must exclude ${node}`);
 }
 
 const majorCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];

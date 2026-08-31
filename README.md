@@ -39,6 +39,8 @@ Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现�
 
 局域网、私网和国内网站直接连接，避免国内服务绕境外代理造成延迟升高、下载变慢或本地设备无法访问。国外网站和未识别流量默认进入代理，避免新出现的国外 AI 或开发者服务因为规则尚未收录而意外直连。
 
+Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可以手动进入美国、台湾、香港、日本、新加坡、韩国、欧洲或 `🌐 其他国家节点`。其他国家组会排除中国、回国、套餐提示和已单独分类的国家，并提供自动测速与具体节点选择。
+
 ### 广告与追踪过滤
 
 Shadowrocket 配置使用维护中的广告域名集；Clash/Mihomo 脚本使用内核广告分类。广告规则只负责明确命中的广告与追踪请求，AI 核心域名规则具有更高优先级，降低认证、静态资源或遥测接口被误拦截的概率。
@@ -226,6 +228,7 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 5. 下载后选中该配置，并点击“使用配置”。
 6. 将“全局路由”设置为“配置”。
 7. 打开代理分组，分别为四个 AI 服务选择国家，再进入国家组选择自动测速或固定具体节点；Claude、OpenAI 也提供具体节点快捷入口。
+8. 普通国外流量默认保持 `🎯 国外代理 → ♻️ 国外自动`；需要指定国家时，可进入 `🎯 国外代理` 选择国家组或 `🌐 其他国家节点`。
 
 ### 本地文件导入
 
@@ -261,7 +264,7 @@ https://johnshall.github.io/Shadowrocket-ADBlock-Rules-Forever/sr_top500_banlist
 
 | 配置 | 未匹配网站 | AI 国家选择组 | 广告过滤 |
 |---|---|---|---|
-| `shadowrocket-global.conf` | 国外代理 | Claude、OpenAI、Google 独立组 + 其他 AI 统一组 | `AdvertisingLite` |
+| `shadowrocket-global.conf` | 国外代理，可选自动/国家/其他国家 | Claude、OpenAI、Google 独立组 + 其他 AI 统一组 | `AdvertisingLite` |
 | Johnshall 黑名单 + 广告 | 默认直连 | 无本仓库的四个 AI 策略组 | Johnshall 聚合规则 |
 
 Johnshall 文件是一份完整配置，不是可直接叠加到 `shadowrocket-global.conf` 的模块。建议把两份配置都下载到 Shadowrocket，按场景切换；如果选择 Johnshall 配置，本仓库的 AI 独立策略组不会生效。
