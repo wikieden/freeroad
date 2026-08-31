@@ -35,6 +35,8 @@ for (const key of ["dns-server", "direct-dns-server", "fallback-dns-server", "pr
   for (const endpoint of endpoints) {
     assert.match(endpoint, /^https:\/\//, `${key} must not use system, plaintext DNS, DoT, or DoQ: ${endpoint}`);
     assert.match(endpoint, /#no-h3$/, `${key} must keep DNS on HTTPS instead of opportunistic HTTP/3: ${endpoint}`);
+    const dohUrl = new URL(endpoint.replace(/#no-h3$/, ""));
+    assert.match(dohUrl.hostname, /^(?:\d{1,3}\.){3}\d{1,3}$/, `${key} must not need bootstrap DNS: ${endpoint}`);
   }
 }
 assert.equal(general.get("dns-direct-system"), "false", "direct domains must not use system DNS");

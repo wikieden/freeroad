@@ -43,7 +43,7 @@ Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可
 
 ### Shadowrocket 优先使用加密 DoH
 
-Shadowrocket 配置的默认解析、国内直连解析、备用解析和节点域名解析都只使用 HTTPS DoH，并关闭系统 DNS 参与。所有硬编码到 UDP/TCP 53 端口的明文 DNS 请求会被接管；DoH 同时禁用 HTTP/3，避免代理 QUIC 阻断时出现不一致的回落路径。
+Shadowrocket 配置的默认解析、国内直连解析、备用解析和节点域名解析都只使用 HTTPS DoH，并关闭系统 DNS 参与。DoH 使用通过 TLS 校验的 IP 端点，避免解析 DoH 服务域名时再次依赖引导 DNS。所有硬编码到 UDP/TCP 53 端口的明文 DNS 请求会被接管；DoH 同时禁用 HTTP/3，避免代理 QUIC 阻断时出现不一致的回落路径。
 
 国内直连域名仍使用国内加密 DoH，以保留国内 CDN 和局域网使用体验；代理类域名由 Shadowrocket 按代理规则远程解析。备用 DNS 也只使用 DoH，不会回退到运营商或系统 DNS。代价是所有 DoH 上游都不可达时解析会直接失败，这是防止静默泄漏的预期行为。
 
