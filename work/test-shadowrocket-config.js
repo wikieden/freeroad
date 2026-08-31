@@ -19,6 +19,28 @@ for (const prohibitedSection of ["[MITM]", "[Script]", "[URL Rewrite]", "[Header
 assert.doesNotMatch(source, /公司|内网|relay/i);
 assert.doesNotMatch(source, /(?:password|token|secret)\s*=/i);
 
+const generalStart = activeLines.indexOf("[General]") + 1;
+const proxyGroupSection = activeLines.indexOf("[Proxy Group]");
+const general = new Map(
+  activeLines.slice(generalStart, proxyGroupSection).map((line) => {
+    const separator = line.indexOf("=");
+    assert.notEqual(separator, -1, `invalid general setting: ${line}`);
+    return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
+  })
+);
+
+for (const key of ["dns-server", "direct-dns-server", "fallback-dns-server", "proxy-dns-server"]) {
+  const endpoints = general.get(key)?.split(",").map((endpoint) => endpoint.trim()) ?? [];
+  assert.ok(endpoints.length > 0, `${key} must define at least one DNS-over-HTTPS endpoint`);
+  for (const endpoint of endpoints) {
+    assert.match(endpoint, /^https:\/\//, `${key} must not use system, plaintext DNS, DoT, or DoQ: ${endpoint}`);
+    assert.match(endpoint, /#no-h3$/, `${key} must keep DNS on HTTPS instead of opportunistic HTTP/3: ${endpoint}`);
+  }
+}
+assert.equal(general.get("dns-direct-system"), "false", "direct domains must not use system DNS");
+assert.equal(general.get("dns-direct-fallback-proxy"), "false", "direct DNS failure must not silently change route");
+assert.equal(general.get("hijack-dns"), ":53", "all hard-coded plaintext DNS on port 53 must be intercepted");
+
 const proxyGroupStart = activeLines.indexOf("[Proxy Group]") + 1;
 const ruleStart = activeLines.indexOf("[Rule]");
 const groupLines = activeLines.slice(proxyGroupStart, ruleStart);
