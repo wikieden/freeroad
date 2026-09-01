@@ -6,6 +6,9 @@
 # 2. 将示例主机名和 10.0.0.10 替换成真实映射。
 # 3. 若内部 DNS 不是系统 DNS，将 server:system 替换成 server:<内部 DNS IP>。
 # 4. .in 是真实公网国家域名；仅在确认整个 .in 后缀都属于本地内网时，才在本地副本中使用它。
+# 5. 若需让整个 .in 后缀使用内网 DNS，请在本地副本中启用以下两项；模板不包含真实内网 DNS IP：
+# DOMAIN-SUFFIX,in,DIRECT
+# *.in = server:<内部 DNS IP>
 
 [General]
 use-local-host-item-for-proxy = true

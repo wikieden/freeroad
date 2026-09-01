@@ -28,6 +28,9 @@ assert.equal(hosts.size, 2, "public template must contain only the documented pl
 assert.equal(hosts.get("nas.internal.example"), "10.0.0.10");
 assert.equal(hosts.get("*.internal.example"), "server:system");
 
+assert.match(source, /# \*\.in = server:<内部 DNS IP>/);
+const privateDnsAddress = [172, 16, 4, 103].join(".");
+assert.ok(!source.includes(privateDnsAddress), "public template must not contain the private DNS address");
 assert.doesNotMatch(source, /(?:password|token|secret|api[_-]?key)\s*=/i);
 
 console.log("PASS: public Shadowrocket internal Hosts template");

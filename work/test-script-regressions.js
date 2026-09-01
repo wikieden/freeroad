@@ -49,6 +49,21 @@ assert.deepEqual(Array.from(twice.dns["nameserver-policy"]["geosite:geolocation-
   "https://1.1.1.1/dns-query",
   "https://8.8.8.8/dns-query"
 ]);
+assert.equal(twice.dns["nameserver-policy"]["+.in"], undefined);
+assert.equal(twice.dns["fake-ip-filter"].includes("+.in"), false);
+assert.equal(twice.rules.includes("DOMAIN-SUFFIX,in,DIRECT"), false);
+
+const internalDns = "192.0.2.53";
+const internalIn = context.main({
+  proxies: [{ name: "US-A", type: "ss" }],
+  rules: [],
+  dns: { "nameserver-policy": { "+.in": [internalDns] } }
+}, "internal-in");
+assert.ok(internalIn.dns["nameserver-policy"]["+.in"], "configured .in DNS policy must survive the script");
+assert.deepEqual(Array.from(internalIn.dns["nameserver-policy"]["+.in"]), [internalDns]);
+assert.equal(internalIn.dns["fake-ip-filter"].includes("+.in"), true);
+assert.equal(internalIn.sniffer["skip-domain"].includes("+.in"), true);
+assert.equal(internalIn.rules.filter((rule) => rule === "DOMAIN-SUFFIX,in,DIRECT").length, 1);
 
 const claudeUdpGuard = "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT";
 const openAiUdpGuard = "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT";

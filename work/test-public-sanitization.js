@@ -5,6 +5,9 @@ const vm = require("node:vm");
 
 const scriptPath = path.resolve(__dirname, "../clash-goblal-extend-script.js");
 const source = fs.readFileSync(scriptPath, "utf8");
+const internalDnsTemplatePath = path.resolve(__dirname, "../templates/clash-internal-dns.example.yaml");
+assert.ok(fs.existsSync(internalDnsTemplatePath), "public Clash internal DNS template must exist");
+const internalDnsTemplate = fs.readFileSync(internalDnsTemplatePath, "utf8");
 const context = {};
 vm.createContext(context);
 vm.runInContext(source, context, { filename: scriptPath });
@@ -28,6 +31,10 @@ const result = context.main({
 assert.equal(result.proxies.some((proxy) => proxy && proxy.type === "http"), false);
 assert.equal(result["proxy-groups"].some((group) => /Kiro/i.test(group.name)), false);
 assert.doesNotMatch(source, /公司|内网|relay/i);
+assert.match(internalDnsTemplate, /<内部 DNS IP>/);
+const privateDnsAddress = [172, 16, 4, 103].join(".");
+assert.ok(!internalDnsTemplate.includes(privateDnsAddress), "public Clash template must not contain the private DNS address");
+assert.doesNotMatch(internalDnsTemplate, /^rules:/m, "public global config template must not overwrite subscription rules");
 
 const majorAiCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
 const majorAiQuickNodes = ["US-A", "Seattle-01", "台湾-A", "Kaohsiung-01", "日本-A", "Fukuoka-01", "新加坡-A"];

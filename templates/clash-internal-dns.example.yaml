@@ -1,0 +1,9 @@
+# Clash Verge Rev 全局扩展配置模板
+# 复制后把占位符替换为真实内网 DNS；不要把内部地址提交到公开仓库。
+# 需配合本仓库的全局扩展脚本：脚本会据此补齐 fake-ip-filter、嗅探排除和 DIRECT 规则。
+# 不要在这里添加 rules，旧版/部分版本会整体覆盖订阅规则。
+
+dns:
+  nameserver-policy:
+    "+.in":
+      - "<内部 DNS IP>"

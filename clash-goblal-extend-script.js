@@ -20,6 +20,12 @@ function main(config, name) {
   const incomingRules = Array.isArray(config["rules"]) ? config["rules"] : [];
   const personalMarkerIndex = incomingRules.indexOf(PERSONAL_RULES_MARKER);
   const personalRules = personalMarkerIndex >= 0 ? incomingRules.slice(personalMarkerIndex + 1) : [];
+  const incomingDnsPolicy = config["dns"] && config["dns"]["nameserver-policy"];
+  const incomingInDns = incomingDnsPolicy && incomingDnsPolicy["+.in"];
+  const internalInDns = Array.isArray(incomingInDns)
+    ? incomingInDns.filter((server) => typeof server === "string" && server.trim())
+    : [];
+  const hasInternalInDns = internalInDns.length > 0;
 
   // ---------- 1. 基础 ----------
   config["ipv6"] = false;
@@ -50,6 +56,10 @@ function main(config, name) {
       "geosite:geolocation-!cn": ["https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query"]
     }
   };
+  if (hasInternalInDns) {
+    config["dns"]["fake-ip-filter"].push("+.in");
+    config["dns"]["nameserver-policy"]["+.in"] = internalInDns.slice();
+  }
 
   // ---------- 3. 嗅探 ----------
   config["sniffer"] = {
@@ -68,6 +78,7 @@ function main(config, name) {
     },
     "skip-domain": ["Mijia Cloud", "+.push.apple.com", "+.apple.com"]
   };
+  if (hasInternalInDns) config["sniffer"]["skip-domain"].push("+.in");
 
   // ---------- 4. 清洗 + 按地区归类（加固正则，防跨订阅误配）----------
   if (!Array.isArray(config.proxies)) config.proxies = [];
@@ -324,11 +335,12 @@ function main(config, name) {
   // 2.5.2 会先应用订阅「编辑规则」，再执行全局脚本。个人规则使用 append 标记协议，
   // 由脚本在入口处暂存，并在此处重新插到最终规则最前；个人规则内容始终留在订阅规则文件中。
   // RFC1918 私网段 → DIRECT + no-resolve。
-  const universalRules = [
+  const internalInRules = hasInternalInDns ? ["DOMAIN-SUFFIX,in,DIRECT"] : [];
+  const universalRules = internalInRules.concat([
     "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
     "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
     "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve"
-  ].concat(config["rules"]);
+  ], config["rules"]);
   config["rules"] = [PERSONAL_RULES_MARKER].concat(personalRules, universalRules)
     .filter((rule, index, rules) => rules.indexOf(rule) === index);
 

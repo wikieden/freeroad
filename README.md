@@ -315,6 +315,10 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 `.in` 是真实的印度国家顶级域名，不能直接写入公开通用模板。只有在明确知道整个 `.in` 后缀都属于自己的本地内网时，才可以在私人副本中把 `internal.example` 替换为 `in`。
 
+Clash Verge Rev 用户可复制 [`templates/clash-internal-dns.example.yaml`](./templates/clash-internal-dns.example.yaml)，替换 `<内部 DNS IP>` 后粘贴到“全局扩展配置”。本仓库的全局扩展脚本会读取 `+.in` 策略，并自动补齐 fake-IP 排除、嗅探排除和 `DOMAIN-SUFFIX,in,DIRECT`。未配置该策略时，公开脚本不会接管公网 `.in` 域名。
+
+不要把 `rules` 写进这份全局扩展配置：部分 Clash Verge Rev 版本会整体覆盖订阅规则。`.in` 的直连规则继续由全局扩展脚本生成。
+
 系统 `/etc/hosts` 不会自动复制到 Shadowrocket，需要使用的条目应手工放入本地模块。真实内部域名、内部 DNS、固定 IP 和公司配置不得提交到公开仓库。建议把私人模块保存在仓库外的独立目录；发布或提交前运行 `git status` 确认它没有进入版本控制。
 
 ### Johnshall 黑名单过滤 + 广告规则
