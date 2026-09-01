@@ -246,6 +246,22 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 也可以下载 [`shadowrocket-global.conf`](./shadowrocket-global.conf)，通过 AirDrop、文件 App 或分享菜单交给 Shadowrocket 打开。
 
+### 本地内网 Hosts 模块模板
+
+仓库提供脱敏模板 [`templates/shadowrocket-internal-hosts.example.sgmodule`](./templates/shadowrocket-internal-hosts.example.sgmodule)，用于保留只应存在于个人设备上的内网域名、固定 Hosts 和内部 DNS。模板会让本地 Host 映射对代理域名生效，并将指定的内部域名后缀设为直连；独立模块不会随着主配置更新而被覆盖。
+
+使用步骤：
+
+1. 下载模板并复制为本地文件，例如 `shadowrocket-internal-hosts.local.sgmodule`。
+2. 将 `internal.example`、示例主机名和 `10.0.0.10` 替换成自己的内部配置。
+3. 内网使用系统 Hosts/DNS 时保留 `server:system`；使用指定内部 DNS 时改为 `server:<内部 DNS IP>`。
+4. 在 Shadowrocket 中打开“配置”→“模块”→右上角 `+`，新建本地模块并粘贴修改后的内容，保存后启用。
+5. 断开并重新连接 Shadowrocket，再通过连接日志或实际内部服务确认解析和直连策略生效。
+
+`.in` 是真实的印度国家顶级域名，不能直接写入公开通用模板。只有在明确知道整个 `.in` 后缀都属于自己的本地内网时，才可以在私人副本中把 `internal.example` 替换为 `in`。
+
+真实内部域名、内部 DNS、固定 IP 和公司配置不得提交到公开仓库。建议把私人模块保存在仓库外的独立目录；发布或提交前运行 `git status` 确认它没有进入版本控制。
+
 ### Johnshall 黑名单过滤 + 广告规则
 
 [Shadowrocket-ADBlock-Rules-Forever](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever#%E9%BB%91%E5%90%8D%E5%8D%95%E8%BF%87%E6%BB%A4--%E5%B9%BF%E5%91%8A) 还提供一份专门面向 Shadowrocket 的“黑名单过滤 + 广告”完整配置：

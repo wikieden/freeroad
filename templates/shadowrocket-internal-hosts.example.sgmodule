@@ -1,0 +1,18 @@
+#!name=Freeroad Internal Hosts Template
+#!desc=公开脱敏模板：复制到本地后替换示例域名和 IP；不要提交真实内部配置。
+
+# 使用前请在本地副本中完成以下替换：
+# 1. 将 internal.example 替换成自己的内部域名后缀。
+# 2. 将示例主机名和 10.0.0.10 替换成真实映射。
+# 3. 若内部 DNS 不是系统 DNS，将 server:system 替换成 server:<内部 DNS IP>。
+# 4. .in 是真实公网国家域名；仅在确认整个 .in 后缀都属于本地内网时，才在本地副本中使用它。
+
+[General]
+use-local-host-item-for-proxy = true
+
+[Rule]
+DOMAIN-SUFFIX,internal.example,DIRECT
+
+[Host]
+nas.internal.example = 10.0.0.10
+*.internal.example = server:system
