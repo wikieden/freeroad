@@ -55,7 +55,7 @@ for (const key of ["dns-server", "fallback-dns-server"]) {
   }
 }
 for (const endpoint of dnsEndpoints("proxy-dns-server")) {
-  assert.equal(domesticDnsHosts.has(dnsHostname(endpoint)), false, `node bootstrap DNS must not use a domestic resolver: ${endpoint}`);
+  assert.ok(domesticDnsHosts.has(dnsHostname(endpoint)), `node bootstrap DNS must use a directly reachable domestic DoH endpoint: ${endpoint}`);
   assert.match(endpoint, /#no-h3$/, `node bootstrap DNS must stay on HTTPS instead of opportunistic HTTP/3: ${endpoint}`);
   assert.doesNotMatch(endpoint, /#proxy(?:=|&|$)/, `node bootstrap DNS must not create a proxy resolution loop: ${endpoint}`);
 }
