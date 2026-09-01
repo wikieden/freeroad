@@ -43,11 +43,13 @@ Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可
 
 ### Shadowrocket 优先使用加密 DoH
 
-Shadowrocket 配置的默认解析、国内直连解析、备用解析和节点域名解析都只使用 HTTPS DoH，并关闭系统 DNS 参与。DoH 使用通过 TLS 校验的 IP 端点，避免解析 DoH 服务域名时再次依赖引导 DNS。所有硬编码到 UDP/TCP 53 端口的明文 DNS 请求会被接管；DoH 同时禁用 HTTP/3，避免代理 QUIC 阻断时出现不一致的回落路径。
+Shadowrocket 配置的所有解析路径都只使用 HTTPS DoH，并关闭系统 DNS 参与。DoH 使用通过 TLS 校验的 IP 端点，避免解析 DoH 服务域名时再次依赖引导 DNS。所有硬编码到 UDP/TCP 53 端口的明文 DNS 请求会被接管。直连和节点引导 DoH 使用 `#no-h3`；代理 DoH 使用 Shadowrocket 官方的 `#proxy` 写法，并由 `block-quic = all-proxy` 阻止代理 QUIC 回落。
 
-国内直连域名仍使用国内加密 DoH，以保留国内 CDN 和局域网使用体验；代理类域名由 Shadowrocket 按代理规则远程解析。备用 DNS 也只使用 DoH，不会回退到运营商或系统 DNS。代价是所有 DoH 上游都不可达时解析会直接失败，这是防止静默泄漏的预期行为。
+国内直连域名只使用国内加密 DoH，以保留国内 CDN 和局域网使用体验；代理类域名由 Shadowrocket 按实际代理规则交给代理节点远程解析。默认与备用 DNS 都改用 Cloudflare/Google 境外 DoH，并通过默认代理转发，不再接触国内解析器。代理节点自身域名需要在代理建立前解析，因此单独使用境外直连 DoH，避免形成“先连接代理才能解析代理节点”的循环。
 
-可使用 [IPinfo.cv DNS 泄漏检测](https://ipinfo.cv/dns-leak-check) 辅助检查。该页面会把中国解析器直接标记为泄漏，因此看到 AliDNS/DNSPod 的中国解析器不必然代表明文或运营商 DNS 泄漏；重点检查是否出现当前网络运营商、路由器或其他未配置的系统 DNS。检测还需结合 Shadowrocket 连接日志，不能只看页面颜色。
+所有境外 DoH 或代理均不可达时，解析会直接失败，而不是静默回退到国内、运营商或系统 DNS。这是防止代理网站 DNS 泄漏的预期行为。DNS-over-PROXY 使用的是 Shadowrocket 的默认节点；正常代理域名仍由实际命中的国家策略组远程解析。
+
+可使用 [IPinfo.cv DNS 泄漏检测](https://ipinfo.cv/dns-leak-check) 辅助检查。测试代理网站时不应再出现 AliDNS/DNSPod、当前网络运营商、路由器或其他国内系统解析器；测试国内直连网站时仍可能正常使用国内加密 DoH。检测还需结合 Shadowrocket 连接日志，不能只看页面颜色。
 
 ### 广告与追踪过滤
 

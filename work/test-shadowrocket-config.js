@@ -34,10 +34,30 @@ for (const key of ["dns-server", "direct-dns-server", "fallback-dns-server", "pr
   assert.ok(endpoints.length > 0, `${key} must define at least one DNS-over-HTTPS endpoint`);
   for (const endpoint of endpoints) {
     assert.match(endpoint, /^https:\/\//, `${key} must not use system, plaintext DNS, DoT, or DoQ: ${endpoint}`);
-    assert.match(endpoint, /#no-h3$/, `${key} must keep DNS on HTTPS instead of opportunistic HTTP/3: ${endpoint}`);
-    const dohUrl = new URL(endpoint.replace(/#no-h3$/, ""));
+    const dohUrl = new URL(endpoint);
     assert.match(dohUrl.hostname, /^(?:\d{1,3}\.){3}\d{1,3}$/, `${key} must not need bootstrap DNS: ${endpoint}`);
   }
+}
+
+const dnsEndpoints = (key) => general.get(key).split(",").map((endpoint) => endpoint.trim());
+const dnsHostname = (endpoint) => new URL(endpoint.replace(/#.*$/, "")).hostname;
+const domesticDnsHosts = new Set(["223.5.5.5", "1.12.12.12"]);
+
+for (const endpoint of dnsEndpoints("direct-dns-server")) {
+  assert.ok(domesticDnsHosts.has(dnsHostname(endpoint)), `direct DNS must use a domestic DoH endpoint: ${endpoint}`);
+  assert.match(endpoint, /#no-h3$/, `direct DNS must stay on HTTPS instead of opportunistic HTTP/3: ${endpoint}`);
+  assert.doesNotMatch(endpoint, /#proxy(?:=|&|$)/, `direct DNS must not cross the proxy: ${endpoint}`);
+}
+for (const key of ["dns-server", "fallback-dns-server"]) {
+  for (const endpoint of dnsEndpoints(key)) {
+    assert.equal(domesticDnsHosts.has(dnsHostname(endpoint)), false, `${key} must not use a domestic resolver: ${endpoint}`);
+    assert.equal(new URL(endpoint).hash, "#proxy", `${key} must use the documented default-node DNS-over-PROXY syntax: ${endpoint}`);
+  }
+}
+for (const endpoint of dnsEndpoints("proxy-dns-server")) {
+  assert.equal(domesticDnsHosts.has(dnsHostname(endpoint)), false, `node bootstrap DNS must not use a domestic resolver: ${endpoint}`);
+  assert.match(endpoint, /#no-h3$/, `node bootstrap DNS must stay on HTTPS instead of opportunistic HTTP/3: ${endpoint}`);
+  assert.doesNotMatch(endpoint, /#proxy(?:=|&|$)/, `node bootstrap DNS must not create a proxy resolution loop: ${endpoint}`);
 }
 assert.equal(general.get("dns-direct-system"), "false", "direct domains must not use system DNS");
 assert.equal(general.get("dns-direct-fallback-proxy"), "false", "direct DNS failure must not silently change route");
