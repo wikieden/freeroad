@@ -1,4 +1,10 @@
-# Freeroad 分流配置
+# Freeroad 分流配置：Shadowrocket / FlClash / Clash Verge Rev 多平台 AI 分流策略方案
+
+Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工具，为 Claude、OpenAI、Google/Gemini/Antigravity 和其他 AI 服务提供独立出口、国家节点选择、DNS 防泄漏与安全检测方案。
+
+只使用代理服务商自带的默认分流策略通常远远不够。AI 服务的登录、API、静态资源和遥测请求可能落到不同出口，DNS、UDP 或 WebRTC 泄漏也会影响账号稳定性与检测结果。不信可以先打开 [Net.Coffee Claude AI IP 风险检测](https://ip.net.coffee/claude/) 看一下当前出口评分，再决定是否需要独立的 AI 分流策略。
+
+这套方案会把 AI 出口、DNS、UDP 回落和客户端差异显式管理，帮助减少常见安全评分扣分项。在节点质量、IP 信誉和客户端环境正确时，检测结果可以达到高分甚至满分，但不承诺所有节点、网络和账号都必然满分。
 
 为不同代理客户端提供统一的分流目标：
 
@@ -10,7 +16,36 @@
 
 > 这些文件只提供配置与分流规则，不提供代理节点。使用前需要准备兼容相应客户端的节点订阅。
 
-## 为什么使用这套配置
+## 快速导航
+
+- [第一章：方案优势与核心能力](#overview)
+- [AI 服务分流策略](#ai-routing)
+- [DNS 与安全防护](#dns-security)
+- [第二章：账号地区限制与风险信号](#account-risk)
+- [第三章：AI 出口检测与验收](#ai-verification)
+- [第四章：客户端下载](#downloads)
+- [第五章：文件与客户端兼容性](#compatibility)
+- [第六章：Clash Verge Rev](#clash-verge-rev)
+- [第七章：FlClash](#flclash)
+- [第八章：Shadowrocket](#shadowrocket)
+- [本地内网 Hosts 模板](#internal-hosts)
+- [第九章：Clash Meta for Android](#clash-meta-android)
+- [第十章：常见问题](#faq)
+
+## 一分钟选择客户端
+
+| 设备或客户端 | 使用文件 | 适合场景 |
+|---|---|---|
+| Windows、macOS、Linux / Clash Verge Rev | [`clash-goblal-extend-script.js`](./clash-goblal-extend-script.js) | 已有 Clash/Mihomo 节点订阅，希望通过全局扩展脚本自动重建 AI 分组和规则 |
+| Android、Windows、macOS、Linux / FlClash | [`clash-goblal-extend-script.js`](./clash-goblal-extend-script.js) | 使用 FlClash 脚本覆写，希望订阅更新后继续保留统一分流策略 |
+| iPhone、iPad、Mac、Apple TV / Shadowrocket | [`shadowrocket-global.conf`](./shadowrocket-global.conf) | 需要可直接导入的完整配置、国家节点组、DoH 和广告过滤 |
+| Android / Clash Meta for Android | 自建完整 Clash/Mihomo YAML | 需要在本地 YAML 中配置私密 `proxy-providers`，不能直接导入本仓库 JS/CONF |
+
+<a id="overview"></a>
+
+## 第一章：方案优势与核心能力
+
+<a id="ai-routing"></a>
 
 ### 让 AI 服务保持稳定、可控的出口
 
@@ -41,7 +76,9 @@ Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现�
 
 Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可以手动进入美国、台湾、香港、日本、新加坡、韩国、欧洲或 `🌐 其他国家节点`。其他国家组会排除中国、回国、套餐提示和已单独分类的国家，并提供自动测速与具体节点选择。
 
-### Shadowrocket 优先使用加密 DoH
+<a id="dns-security"></a>
+
+### DNS 与安全防护：Shadowrocket 优先使用加密 DoH
 
 Shadowrocket 配置的所有解析路径都只使用 HTTPS DoH，并关闭系统 DNS 参与。DoH 使用通过 TLS 校验的 IP 端点，避免解析 DoH 服务域名时再次依赖引导 DNS。所有硬编码到 UDP/TCP 53 端口的明文 DNS 请求会被接管。直连和节点引导 DoH 使用 `#no-h3`；代理 DoH 使用 Shadowrocket 官方的 `#proxy` 写法，并由 `block-quic = all-proxy` 阻止代理 QUIC 回落。
 
@@ -78,7 +115,9 @@ Clash Verge Rev 和 FlClash 通过脚本在节点订阅加载后重建策略组�
 
 仓库只保存公开分流逻辑，不保存机场订阅 URL、节点密码或私有网络配置。你可以检查全部规则，并把真实订阅凭据保留在自己的客户端或本地 YAML 中。
 
-## 账号地区限制与社区风险信号
+<a id="account-risk"></a>
+
+## 第二章：账号地区限制与社区风险信号
 
 官方资料能确认的是：Anthropic 会使用 IP 等信号判断国家或地区并执行支持地区政策；OpenAI 可能阻止来自不支持地区的注册或 API 访问；Gemini API/AI Studio 也只在列出的地区开放。对应资料见 [Anthropic 位置说明](https://privacy.claude.com/en/articles/11186740-does-claude-use-my-location)、[Anthropic 支持地区执法说明](https://www.anthropic.com/transparency/system-trust-reporting)、[OpenAI 不支持地区说明](https://help.openai.com/en/articles/8983035-why-can-t-i-sign-up-due-to-unsupported-country)和 [Gemini 可用地区](https://ai.google.dev/gemini-api/docs/available-regions)。
 
@@ -86,7 +125,9 @@ X、Reddit 和 Hacker News 上还有 VPN、共享 IP、账号国家不一致、�
 
 本配置能做的是固定网络出口并避免协议回落串到其他国家；它不能修复账号共享、多账号绕限额、第三方工具违反条款、付款资料不一致或账号本身已被限制。使用时仍应遵守服务条款，并长期固定信誉较好的支持地区节点。
 
-## 先验证四个 AI 出口
+<a id="ai-verification"></a>
+
+## 第三章：AI 出口检测与验收
 
 出口检测是配置完成后的关键验收步骤。Claude、OpenAI、Google/Gemini/Antigravity 和其他境外 AI 使用四个相互隔离的策略组，必须分别检查，不能只验证浏览器显示的普通公网 IP。
 
@@ -137,7 +178,9 @@ Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国
 - 第三方检测页的评分和标签只适合辅助比较节点，不代表厂商官方判定，也不能保证账号不会触发验证或风控。
 - 不要在任何检测页面输入账号密码、订阅链接或节点凭据。
 
-## 客户端官方下载
+<a id="downloads"></a>
+
+## 第四章：客户端官方下载
 
 | 客户端 | 平台 | 当前验证版本 | 官方下载地址 |
 |---|---|---|---|
@@ -156,7 +199,9 @@ Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国
 
 请勿从来源不明的“汉化版”“破解版”或第三方 APK/IPA 下载站安装。这类客户端拥有 VPN 与全量网络流量权限，应优先使用项目 GitHub Releases 或 Apple App Store。
 
-## 文件与客户端兼容性
+<a id="compatibility"></a>
+
+## 第五章：文件与客户端兼容性
 
 | 客户端 | 使用文件 | 使用方式 |
 |---|---|---|
@@ -172,7 +217,9 @@ https://raw.githubusercontent.com/wikieden/freeroad/main/clash-goblal-extend-scr
 https://raw.githubusercontent.com/wikieden/freeroad/main/shadowrocket-global.conf
 ```
 
-## Clash Verge Rev
+<a id="clash-verge-rev"></a>
+
+## 第六章：Clash Verge Rev
 
 验证基线：[Clash Verge Rev v2.5.2](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/v2.5.2)。官方扩展机制支持通过 `main(config, profileName)` 修改订阅生成的配置。
 
@@ -196,7 +243,9 @@ Clash Verge Rev 的全局扩展脚本是本地编辑项。仓库脚本更新后�
 
 参考：[Clash Verge Rev 扩展说明](https://www.clashverge.dev/guide/extend.html)、[自定义脚本说明](https://www.clashverge-cn.com/guide/script.html)。
 
-## FlClash
+<a id="flclash"></a>
+
+## 第七章：FlClash
 
 验证基线：[FlClash v0.8.96](https://github.com/chen08209/FlClash/releases/tag/v0.8.96)。FlClash 的脚本覆写会执行 `main(config)`；本仓库脚本的第二个 `name` 参数是可选的，因此可以直接使用。
 
@@ -224,7 +273,9 @@ Clash Verge Rev 的全局扩展脚本是本地编辑项。仓库脚本更新后�
 
 实现依据：[FlClash JavaScript 执行入口](https://github.com/chen08209/FlClash/blob/main/lib/common/javascript.dart)、[脚本管理界面](https://github.com/chen08209/FlClash/blob/main/lib/views/config/scripts.dart)。
 
-## Shadowrocket
+<a id="shadowrocket"></a>
+
+## 第八章：Shadowrocket
 
 Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
@@ -247,6 +298,8 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 ### 本地文件导入
 
 也可以下载 [`shadowrocket-global.conf`](./shadowrocket-global.conf)，通过 AirDrop、文件 App 或分享菜单交给 Shadowrocket 打开。
+
+<a id="internal-hosts"></a>
 
 ### 本地内网 Hosts 模块模板
 
@@ -305,7 +358,9 @@ Johnshall 文件是一份完整配置，不是可直接叠加到 `shadowrocket-g
 
 参考：[Shadowrocket 使用手册](https://github.com/LOWERTOP/Shadowrocket/wiki/)。
 
-## Clash Meta for Android
+<a id="clash-meta-android"></a>
+
+## 第九章：Clash Meta for Android
 
 验证基线：[Clash Meta for Android v2.11.33](https://github.com/MetaCubeX/ClashMetaForAndroid/releases/tag/v2.11.33)。该客户端导入完整 Clash/Mihomo YAML，不支持 FlClash 的 `main(config)` 脚本覆写。
 
@@ -360,7 +415,9 @@ clashmeta://install-config?url=<URL 编码后的完整 YAML 地址>
 
 参考：[Clash Meta for Android 官方仓库](https://github.com/MetaCubeX/ClashMetaForAndroid)。
 
-## 常见问题
+<a id="faq"></a>
+
+## 第十章：常见问题
 
 ### AI 策略组为空
 
