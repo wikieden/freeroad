@@ -286,6 +286,12 @@ function main(config, name) {
     // 其他 AI 节点不支持 UDP 时同样失败关闭，不允许继续落入普通国外组。
     "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,pplx.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,cursorapi.com),(DOMAIN-SUFFIX,cursor-cdn.com),(DOMAIN-SUFFIX,huggingface.co),(DOMAIN-SUFFIX,hf.co),(DOMAIN-SUFFIX,x.ai),(DOMAIN-SUFFIX,grok.com),(DOMAIN-SUFFIX,kiro.dev),(DOMAIN-SUFFIX,kiro.aws.dev),(DOMAIN,q.us-east-1.amazonaws.com),(DOMAIN,q.eu-central-1.amazonaws.com),(DOMAIN,cognito-identity.us-east-1.amazonaws.com),(GEOSITE,category-ai-!cn)))),REJECT",
 
+    // 飞书中国站及静态资源显式直连，避免域名集遗漏后落入国外代理造成绕境卡顿。
+    "DOMAIN-SUFFIX,feishu.cn,DIRECT",
+    "DOMAIN-SUFFIX,feishucdn.com,DIRECT",
+    "DOMAIN-SUFFIX,feishu.net,DIRECT",
+    "DOMAIN-SUFFIX,feishupkg.com,DIRECT",
+
     // 广告规则位于 AI 规则之后，避免共享遥测域名先于 AI 一方域名被误拦截。
     "GEOSITE,category-ads-all,🚫 广告拦截",
 

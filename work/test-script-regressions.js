@@ -94,4 +94,15 @@ assert.ok(twice.rules.indexOf(googleUdpGuard) < twice.rules.indexOf("DOMAIN-SUFF
 assert.ok(twice.rules.indexOf("GEOSITE,category-ai-!cn,🤖 其他 AI 服务") < twice.rules.indexOf(otherAiUdpGuard));
 assert.ok(twice.rules.indexOf(otherAiUdpGuard) < twice.rules.indexOf("GEOSITE,category-ads-all,🚫 广告拦截"));
 assert.ok(twice.rules.indexOf(otherAiUdpGuard) < twice.rules.indexOf("GEOSITE,apple,DIRECT"));
+const advertisingRuleIndex = twice.rules.indexOf("GEOSITE,category-ads-all,🚫 广告拦截");
+for (const directRule of [
+  "DOMAIN-SUFFIX,feishu.cn,DIRECT",
+  "DOMAIN-SUFFIX,feishucdn.com,DIRECT",
+  "DOMAIN-SUFFIX,feishu.net,DIRECT",
+  "DOMAIN-SUFFIX,feishupkg.com,DIRECT"
+]) {
+  const directRuleIndex = twice.rules.indexOf(directRule);
+  assert.notEqual(directRuleIndex, -1, `missing Feishu direct rule: ${directRule}`);
+  assert.ok(directRuleIndex < advertisingRuleIndex, `Feishu direct rule must precede advertising: ${directRule}`);
+}
 console.log("PASS: Keep Alive fields and repeated execution");

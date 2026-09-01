@@ -236,6 +236,14 @@ for (const fragment of [
 const advertisingIndex = indexOfRule("AdvertisingLite/AdvertisingLite.list,REJECT");
 const chinaIndex = indexOfRule("China/China.list,DIRECT");
 assert.ok(aiIndices.every((index) => index < advertisingIndex), "AI rules must precede advertising");
+for (const directRule of [
+  "DOMAIN-SUFFIX,feishu.cn,DIRECT",
+  "DOMAIN-SUFFIX,feishucdn.com,DIRECT",
+  "DOMAIN-SUFFIX,feishu.net,DIRECT",
+  "DOMAIN-SUFFIX,feishupkg.com,DIRECT"
+]) {
+  assert.ok(indexOfRule(directRule) < advertisingIndex, `Feishu direct rule must precede advertising: ${directRule}`);
+}
 assert.ok(advertisingIndex < chinaIndex, "advertising must precede China direct rules");
 assert.ok(chinaIndex < ruleLines.length - 1, "China direct rules must precede FINAL");
 
