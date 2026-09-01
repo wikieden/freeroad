@@ -33,7 +33,7 @@ Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点
 | `🔷 Google/Gemini/Antigravity` | Google 登录和全家桶、Gemini、Antigravity、YouTube | 美国、台湾、日本、新加坡 |
 | `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Mistral、Poe、Cohere、OpenRouter 等境外 AI | 美国、台湾、日本、新加坡、欧洲 |
 
-Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用显式服务域名，便于审计和排错。国内 AI 不进入该统一组，仍按国内直连规则处理。
+Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用一方域名和明确专属端点，避免旧规则集把整站 Sentry、Intercom、Stripe、Auth0 等共享服务错误绑定到某个 AI 出口。国内 AI 不进入该统一组，仍按国内直连规则处理。
 
 ### 国内直连，国外代理
 
@@ -51,7 +51,9 @@ Shadowrocket 配置的所有解析路径都只使用 HTTPS DoH，并关闭系统
 
 所有境外 DoH 或代理均不可达时，解析会直接失败，而不是静默回退到国内、运营商或系统 DNS。这是防止代理网站 DNS 泄漏的预期行为。DNS-over-PROXY 使用的是 Shadowrocket 的默认节点；正常代理域名仍由实际命中的国家策略组远程解析。
 
-可使用 [IPinfo.cv DNS 泄漏检测](https://ipinfo.cv/dns-leak-check) 辅助检查。测试代理网站时不应再出现 AliDNS/DNSPod、当前网络运营商、路由器或其他国内系统解析器；测试国内直连网站时仍可能正常使用国内加密 DoH。检测还需结合 Shadowrocket 连接日志，不能只看页面颜色。
+可使用 [IPinfo.cv DNS 泄漏检测](https://ipinfo.cv/dns-leak-check) 辅助检查。代理网站测试不应出现当前本地网络运营商或路由器的解析器；但代理节点自身可能使用 AliDNS、DNSPod 或其他中国解析器，因此出现中国解析器不等于已经证明本地泄漏。测试国内直连网站时使用国内加密 DoH 也属于正常行为。必须结合所选代理出口和 Shadowrocket DNS/连接日志判断，不能只看页面颜色。
+
+Clash/Mihomo 脚本的默认、节点引导、国内和境外 DNS 上游同样使用 IP 形式 DoH；`respect-rules = true` 让境外 DNS 连接按规则进入代理，节点引导则使用可直连的国内加密 DoH，避免形成启动循环。
 
 ### 广告与追踪过滤
 
@@ -248,7 +250,7 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 ### 本地内网 Hosts 模块模板
 
-仓库提供脱敏模板 [`templates/shadowrocket-internal-hosts.example.sgmodule`](./templates/shadowrocket-internal-hosts.example.sgmodule)，用于保留只应存在于个人设备上的内网域名、固定 Hosts 和内部 DNS。模板会让本地 Host 映射对代理域名生效，并将指定的内部域名后缀设为直连；独立模块不会随着主配置更新而被覆盖。
+主配置已让本地 Host 映射对代理域名生效，并仅对 `*.local`、`*.lan`、`*.home.arpa` 使用系统解析；其他国内和代理网站仍遵循前面的 DoH 分流。仓库提供脱敏模板 [`templates/shadowrocket-internal-hosts.example.sgmodule`](./templates/shadowrocket-internal-hosts.example.sgmodule)，用于保留只应存在于个人设备上的内网域名、固定 Hosts 和内部 DNS。模板会将指定的内部域名后缀设为直连；独立模块不会随着主配置更新而被覆盖。
 
 使用步骤：
 
@@ -260,7 +262,7 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 `.in` 是真实的印度国家顶级域名，不能直接写入公开通用模板。只有在明确知道整个 `.in` 后缀都属于自己的本地内网时，才可以在私人副本中把 `internal.example` 替换为 `in`。
 
-真实内部域名、内部 DNS、固定 IP 和公司配置不得提交到公开仓库。建议把私人模块保存在仓库外的独立目录；发布或提交前运行 `git status` 确认它没有进入版本控制。
+系统 `/etc/hosts` 不会自动复制到 Shadowrocket，需要使用的条目应手工放入本地模块。真实内部域名、内部 DNS、固定 IP 和公司配置不得提交到公开仓库。建议把私人模块保存在仓库外的独立目录；发布或提交前运行 `git status` 确认它没有进入版本控制。
 
 ### Johnshall 黑名单过滤 + 广告规则
 
@@ -299,7 +301,7 @@ Johnshall 文件是一份完整配置，不是可直接叠加到 `shadowrocket-g
 
 ### 更新配置
 
-在“配置”页面对当前配置执行更新或重新下载。配置中的 `update-url` 已指向本仓库 Raw 地址。
+在“配置”页面对当前配置执行更新或重新下载。配置中的 `update-url` 已指向本仓库 Raw 地址。更新后需要重新选择“使用配置”并断开重连；自定义 Hosts 应保存在独立本地模块中。
 
 参考：[Shadowrocket 使用手册](https://github.com/LOWERTOP/Shadowrocket/wiki/)。
 
@@ -382,3 +384,19 @@ clashmeta://install-config?url=<URL 编码后的完整 YAML 地址>
 ### 是否可以公开机场订阅链接
 
 不可以。订阅 URL 可能允许他人下载节点并消耗账号流量，应只保存在设备本地或受保护的私有配置服务中。
+
+## 维护验证
+
+修改或发布配置前运行：
+
+```bash
+node --check clash-goblal-extend-script.js
+node work/test-script-regressions.js
+node work/test-public-sanitization.js
+node work/test-shadowrocket-config.js
+node work/test-shadowrocket-internal-hosts-template.js
+node work/test-shadowrocket-remote-rules.js
+git diff --check
+```
+
+最后一项远程规则测试需要联网，会逐个检查 HTTP 状态、非 HTML 内容以及 Shadowrocket 规则格式；日常离线编辑可以先运行其余本地测试。

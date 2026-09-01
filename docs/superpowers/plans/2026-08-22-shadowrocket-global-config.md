@@ -1,5 +1,7 @@
 # Shadowrocket Global Config Implementation Plan
 
+> Historical implementation snapshot. The delivered configuration has since changed; use the root README, `shadowrocket-global.conf`, and current tests as the source of truth.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Generate a public-safe Shadowrocket configuration that sends LAN and China traffic direct, rejects ads, and forces foreign and AI traffic through proxy groups.

@@ -1,6 +1,6 @@
 // Define main function (script entry)
 // ============================================================================
-// Clash Verge 全局扩展脚本 —— 公开通用版 v2.5（AI 服务分组版）
+// Clash Verge 全局扩展脚本 —— 公开通用版 v2.6（AI 服务分组版）
 // 引擎：Boa/QuickJS（无 fs / 无网络，仅 console）。入口 main(config, name)。
 // ----------------------------------------------------------------------------
 // 这是「通用层」：节点按地区归类 + DNS/防泄露 + 三大 AI 独立组 + 其他 AI 统一组。
@@ -42,12 +42,12 @@ function main(config, name) {
       "+.ntp.org.cn", "+.pool.ntp.org",
       "+.msftconnecttest.com", "+.msftncsi.com"
     ],
-    "default-nameserver": ["223.5.5.5", "119.29.29.29"],
-    nameserver: ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
-    "proxy-server-nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
+    "default-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+    nameserver: ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+    "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
     "nameserver-policy": {
-      "geosite:cn": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query"],
-      "geosite:geolocation-!cn": ["https://dns.cloudflare.com/dns-query", "https://dns.google/dns-query"]
+      "geosite:cn": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+      "geosite:geolocation-!cn": ["https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query"]
     }
   };
 
@@ -79,13 +79,13 @@ function main(config, name) {
   // auto:true = 该区做手自一体（默认自动测速、可手动钉）。现在全部地区都开。
   // AI 策略组先选择国家组，再由国家组选择自动测速或具体节点；自动测速不会跨国家。
   const REGIONS = [
-    { key: "🇺🇸 美国",  re: /美国|\bUSA?\b|United\s?States|America|洛杉矶|圣何塞|硅谷/i, auto: true },
+    { key: "🇺🇸 美国",  re: /美国|\bUSA?\b|United\s?States|America|洛杉矶|圣何塞|硅谷|Seattle|New\s?York|Dallas|Chicago|Phoenix|西雅图|纽约|芝加哥|达拉斯|凤凰城/i, auto: true },
     { key: "🇭🇰 香港",  re: /香港|\bHK\b|Hong\s?Kong/i, auto: true },
-    { key: "🇯🇵 日本",  re: /日本|\bJP\b|Japan|东京|大阪/i, auto: true },
+    { key: "🇯🇵 日本",  re: /日本|\bJP\b|Japan|东京|大阪|Fukuoka|Nagoya|福冈|福岡|名古屋/i, auto: true },
     { key: "🇸🇬 新加坡", re: /新加坡|狮城|\bSG\b|Singapore/i, auto: true },
-    { key: "🌏 台湾",  re: /台湾|台灣|\bTW\b|Taiwan/i, auto: true },
+    { key: "🌏 台湾",  re: /台湾|台灣|\bTW\b|Taiwan|Taipei|Taichung|Kaohsiung|台北|台中|高雄|新北/i, auto: true },
     { key: "🇰🇷 韩国",  re: /韩国|首尔|\bKR\b|Korea/i, auto: true },
-    { key: "🇪🇺 欧洲",  re: /欧洲|德国|法国|英国|荷兰|意大利|西班牙|Germany|France|Britain|Europe|\bUK\b|\bGB\b|\bDE\b|\bFR\b|\bNL\b|London|Frankfurt/i, auto: true }
+    { key: "🇪🇺 欧洲",  re: /欧洲|德国|法国|英国|荷兰|意大利|西班牙|Germany|France|Britain|Europe|Italy|Spain|\bUK\b|\bGB\b|\bDE\b|\bFR\b|\bNL\b|\bIT\b|\bES\b|London|Frankfurt|Milan|Madrid|Rome|米兰|米蘭|马德里|馬德里|罗马|羅馬/i, auto: true }
   ];
 
   const buckets = {};
@@ -188,8 +188,6 @@ function main(config, name) {
 
   // ---------- 6. 规则 ----------
   config["rules"] = [
-    "GEOSITE,category-ads-all,🚫 广告拦截",
-
     // ========== Claude / Anthropic 全量分流（优先级最高，避免漏配触发风控）==========
     // 核心主域名
     "DOMAIN-SUFFIX,anthropic.com,🧠 Claude",
@@ -213,22 +211,14 @@ function main(config, name) {
     // 认证与内容服务
     "DOMAIN,anthropic.auth0.com,🧠 Claude",
     "DOMAIN,anthropic-com.ghost.io,🧠 Claude",
-    // 监控与遥测上报（出口IP不一致会直接触发风控）
-    "DOMAIN-SUFFIX,sentry.io,🧠 Claude",
-    "DOMAIN-SUFFIX,statsigapi.net,🧠 Claude",
+    // 明确的 Claude 专属监控端点；共享 SaaS 域名不固定到任何 AI 组。
     "DOMAIN,browser-intake-us5-datadoghq.com,🧠 Claude",
-    "DOMAIN-KEYWORD,datadog,🧠 Claude",
-    "DOMAIN-KEYWORD,sift,🧠 Claude",
-    // 第三方客服与统计
-    "DOMAIN-SUFFIX,intercom.io,🧠 Claude",
-    "DOMAIN-SUFFIX,intercomcdn.com,🧠 Claude",
-    "DOMAIN,cdn.usefathom.com,🧠 Claude",
     // IP 段兜底（不使用 IP-ASN，避免 Windows 首次校验依赖额外下载 ASN.mmdb）
     "IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve",
     "IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve",
     "GEOSITE,anthropic,🧠 Claude", // geosite 分类兜底
     // 仅当上面的 Claude 策略不支持 UDP、内核继续向下匹配时触发，避免换出口或直连。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN-SUFFIX,sentry.io),(DOMAIN-SUFFIX,statsigapi.net),(DOMAIN-KEYWORD,datadog),(DOMAIN-KEYWORD,sift),(DOMAIN-SUFFIX,intercom.io),(DOMAIN-SUFFIX,intercomcdn.com),(DOMAIN,cdn.usefathom.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT",
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT",
 
     // OpenAI：官方一方域名保持独立出口；不把共享的 Stripe/Cloudflare/Intercom 整站强行归组。
     "GEOSITE,openai,✨ OpenAI/AI",
@@ -284,6 +274,9 @@ function main(config, name) {
     "GEOSITE,category-ai-!cn,🤖 其他 AI 服务",
     // 其他 AI 节点不支持 UDP 时同样失败关闭，不允许继续落入普通国外组。
     "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,pplx.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,cursorapi.com),(DOMAIN-SUFFIX,cursor-cdn.com),(DOMAIN-SUFFIX,huggingface.co),(DOMAIN-SUFFIX,hf.co),(DOMAIN-SUFFIX,x.ai),(DOMAIN-SUFFIX,grok.com),(DOMAIN-SUFFIX,kiro.dev),(DOMAIN-SUFFIX,kiro.aws.dev),(DOMAIN,q.us-east-1.amazonaws.com),(DOMAIN,q.eu-central-1.amazonaws.com),(DOMAIN,cognito-identity.us-east-1.amazonaws.com),(GEOSITE,category-ai-!cn)))),REJECT",
+
+    // 广告规则位于 AI 规则之后，避免共享遥测域名先于 AI 一方域名被误拦截。
+    "GEOSITE,category-ads-all,🚫 广告拦截",
 
     // 社交 / 媒体（折叠，无独立组）
     "GEOSITE,telegram,🎯 全局分流",

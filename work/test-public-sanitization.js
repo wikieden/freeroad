@@ -12,10 +12,14 @@ vm.runInContext(source, context, { filename: scriptPath });
 const result = context.main({
   proxies: [
     { name: "US-A", type: "ss" },
+    { name: "Seattle-01", type: "ss" },
     { name: "台湾-A", type: "ss" },
+    { name: "Kaohsiung-01", type: "ss" },
     { name: "日本-A", type: "ss" },
+    { name: "Fukuoka-01", type: "ss" },
     { name: "新加坡-A", type: "ss" },
     { name: "德国-A", type: "ss" },
+    { name: "Milan-01", type: "ss" },
     { name: "美国-剩余流量 50 GB", type: "ss" }
   ],
   rules: []
@@ -26,7 +30,7 @@ assert.equal(result["proxy-groups"].some((group) => /Kiro/i.test(group.name)), f
 assert.doesNotMatch(source, /公司|内网|relay/i);
 
 const majorAiCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
-const majorAiQuickNodes = ["US-A", "台湾-A", "日本-A", "新加坡-A"];
+const majorAiQuickNodes = ["US-A", "Seattle-01", "台湾-A", "Kaohsiung-01", "日本-A", "Fukuoka-01", "新加坡-A"];
 const serviceCountries = new Map([
   ["🧠 Claude", majorAiCountries.concat(majorAiQuickNodes)],
   ["✨ OpenAI/AI", majorAiCountries.concat(majorAiQuickNodes)],
@@ -52,11 +56,11 @@ assert.deepEqual(
 assert.ok(result.rules.includes("GEOSITE,category-ai-!cn,🤖 其他 AI 服务"));
 
 for (const [groupName, expectedProxies] of [
-  ["🇺🇸 美国节点", ["♻️ 美国自动", "US-A"]],
-  ["🌏 台湾节点", ["♻️ 台湾自动", "台湾-A"]],
-  ["🇯🇵 日本节点", ["♻️ 日本自动", "日本-A"]],
+  ["🇺🇸 美国节点", ["♻️ 美国自动", "US-A", "Seattle-01"]],
+  ["🌏 台湾节点", ["♻️ 台湾自动", "台湾-A", "Kaohsiung-01"]],
+  ["🇯🇵 日本节点", ["♻️ 日本自动", "日本-A", "Fukuoka-01"]],
   ["🇸🇬 新加坡节点", ["♻️ 新加坡自动", "新加坡-A"]],
-  ["🇪🇺 欧洲节点", ["♻️ 欧洲自动", "德国-A"]]
+  ["🇪🇺 欧洲节点", ["♻️ 欧洲自动", "德国-A", "Milan-01"]]
 ]) {
   const group = result["proxy-groups"].find((candidate) => candidate.name === groupName);
   assert.ok(group, `missing country group: ${groupName}`);

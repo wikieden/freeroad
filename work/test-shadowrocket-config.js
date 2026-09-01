@@ -9,7 +9,7 @@ const source = fs.readFileSync(configPath, "utf8");
 const lines = source.split(/\r?\n/);
 const activeLines = lines.map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
 
-for (const section of ["[General]", "[Proxy Group]", "[Rule]"]) {
+for (const section of ["[General]", "[Host]", "[Proxy Group]", "[Rule]"]) {
   assert.equal(activeLines.filter((line) => line === section).length, 1, `${section} must occur once`);
 }
 
@@ -20,14 +20,28 @@ assert.doesNotMatch(source, /公司|内网|relay/i);
 assert.doesNotMatch(source, /(?:password|token|secret)\s*=/i);
 
 const generalStart = activeLines.indexOf("[General]") + 1;
+const hostSection = activeLines.indexOf("[Host]");
 const proxyGroupSection = activeLines.indexOf("[Proxy Group]");
 const general = new Map(
-  activeLines.slice(generalStart, proxyGroupSection).map((line) => {
+  activeLines.slice(generalStart, hostSection).map((line) => {
     const separator = line.indexOf("=");
     assert.notEqual(separator, -1, `invalid general setting: ${line}`);
     return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
   })
 );
+
+const hosts = new Map(
+  activeLines.slice(hostSection + 1, proxyGroupSection).map((line) => {
+    const separator = line.indexOf("=");
+    assert.notEqual(separator, -1, `invalid host setting: ${line}`);
+    return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
+  })
+);
+assert.equal(general.get("use-local-host-item-for-proxy"), "true", "local Host mappings must apply to proxied domains");
+assert.equal(hosts.get("*.local"), "server:system", "mDNS/local domains must use the local resolver");
+assert.equal(hosts.get("*.lan"), "server:system", "LAN domains must use the local resolver");
+assert.equal(hosts.get("*.home.arpa"), "server:system", "home.arpa domains must use the local resolver");
+assert.equal(hosts.get("localhost"), "127.0.0.1", "localhost must remain local");
 
 for (const key of ["dns-server", "direct-dns-server", "fallback-dns-server", "proxy-dns-server"]) {
   const endpoints = general.get(key)?.split(",").map((endpoint) => endpoint.trim()) ?? [];
@@ -109,7 +123,7 @@ for (const node of ["🇨🇦 CA-Toronto", "澳大利亚-Sydney", "印度-Mumbai
   assert.equal(otherCountryMatcher.test(node), true, `other countries must include ${node}`);
 }
 for (const node of [
-  "US-A", "台湾-A", "香港-A", "日本-A", "新加坡-A", "韩国-A", "🇩🇪 DE-A",
+  "US-A", "Seattle-01", "台湾-A", "Kaohsiung-01", "香港-A", "日本-A", "Fukuoka-01", "新加坡-A", "韩国-A", "🇩🇪 DE-A", "IT-Milan-01", "ES-Madrid-01",
   "中国-上海", "回国-01", "加拿大-剩余流量 50 GB"
 ]) {
   assert.equal(otherCountryMatcher.test(node), false, `other countries must exclude ${node}`);
@@ -145,11 +159,11 @@ assert.deepEqual(
 );
 
 const countryFixtures = [
-  { country: "🇺🇸 美国节点", automatic: "♻️ 美国自动", allowed: ["🇺🇸 US-A", "美国-洛杉矶-01"], rejected: ["Russia-01", "日本-东京-01", "美国-剩余流量 50 GB"] },
-  { country: "🌏 台湾节点", automatic: "♻️ 台湾自动", allowed: ["🇹🇼 TW-A", "台湾-台北-01"], rejected: ["Russia-01", "新加坡-A", "台湾-套餐到期"] },
-  { country: "🇯🇵 日本节点", automatic: "♻️ 日本自动", allowed: ["🇯🇵 JP-A", "日本-东京-01"], rejected: ["Russia-01", "Fukuoka-01", "日本-剩余流量 50 GB"] },
+  { country: "🇺🇸 美国节点", automatic: "♻️ 美国自动", allowed: ["🇺🇸 US-A", "美国-洛杉矶-01", "Seattle-01"], rejected: ["Russia-01", "日本-东京-01", "美国-剩余流量 50 GB"] },
+  { country: "🌏 台湾节点", automatic: "♻️ 台湾自动", allowed: ["🇹🇼 TW-A", "台湾-台北-01", "Kaohsiung-01"], rejected: ["Russia-01", "新加坡-A", "台湾-套餐到期"] },
+  { country: "🇯🇵 日本节点", automatic: "♻️ 日本自动", allowed: ["🇯🇵 JP-A", "日本-东京-01", "Fukuoka-01"], rejected: ["Russia-01", "美国-Seattle-01", "日本-剩余流量 50 GB"] },
   { country: "🇸🇬 新加坡节点", automatic: "♻️ 新加坡自动", allowed: ["🇸🇬 SG-A", "新加坡-A"], rejected: ["Russia-01", "台湾-A", "新加坡-官网公告"] },
-  { country: "🇪🇺 欧洲节点", automatic: "♻️ 欧洲自动", allowed: ["🇩🇪 DE-A", "英国-London-01"], rejected: ["Russia-01", "US-A", "德国-剩余流量 50 GB"] }
+  { country: "🇪🇺 欧洲节点", automatic: "♻️ 欧洲自动", allowed: ["🇩🇪 DE-A", "英国-London-01", "IT-Milan-01", "ES-Madrid-01"], rejected: ["Russia-01", "US-A", "德国-剩余流量 50 GB"] }
 ];
 
 for (const { country, automatic, allowed, rejected } of countryFixtures) {
@@ -169,6 +183,24 @@ for (const { country, automatic, allowed, rejected } of countryFixtures) {
 
 const ruleLines = activeLines.slice(ruleStart + 1);
 assert.equal(ruleLines.at(-1), "FINAL,🎯 国外代理");
+for (const sharedClaudeRule of [
+  "DOMAIN-SUFFIX,statsigapi.net,🧠 Claude",
+  "DOMAIN-SUFFIX,intercom.io,🧠 Claude",
+  "DOMAIN-SUFFIX,intercomcdn.com,🧠 Claude",
+  "DOMAIN,cdn.usefathom.com,🧠 Claude"
+]) {
+  assert.equal(ruleLines.includes(sharedClaudeRule), false, `shared third-party domain must not be pinned to Claude: ${sharedClaudeRule}`);
+}
+assert.equal(ruleLines.some((line) => line.includes("/Claude/Claude.list")), false, "stale Claude rule set must not reintroduce shared analytics domains");
+assert.equal(ruleLines.some((line) => line.includes("/OpenAI/OpenAI.list")), false, "stale broad OpenAI rule set must not capture shared SaaS domains");
+for (const currentOpenAiRule of [
+  "DOMAIN-SUFFIX,chat.com,✨ OpenAI/AI",
+  "DOMAIN-SUFFIX,sora.com,✨ OpenAI/AI",
+  "DOMAIN-SUFFIX,chatgpt.site,✨ OpenAI/AI",
+  "DOMAIN-SUFFIX,chatgpt.livekit.cloud,✨ OpenAI/AI"
+]) {
+  assert.ok(ruleLines.includes(currentOpenAiRule), `missing current OpenAI rule: ${currentOpenAiRule}`);
+}
 
 const policyForRule = (line) => {
   const parts = line.split(",");
@@ -186,8 +218,8 @@ const indexOfRule = (fragment) => {
   return index;
 };
 const aiIndices = [
-  indexOfRule("Claude/Claude.list,🧠 Claude"),
-  indexOfRule("OpenAI/OpenAI.list,✨ OpenAI/AI"),
+  indexOfRule("DOMAIN-SUFFIX,anthropic.com,🧠 Claude"),
+  indexOfRule("DOMAIN-SUFFIX,openai.com,✨ OpenAI/AI"),
   indexOfRule("Google/Google.list,🔷 Google/Gemini/Antigravity"),
   indexOfRule("Gemini/Gemini.list,🔷 Google/Gemini/Antigravity"),
   indexOfRule("YouTube/YouTube.list,🔷 Google/Gemini/Antigravity")
@@ -224,6 +256,6 @@ const remoteSetUrls = ruleLines
   .filter((line) => /^(?:RULE|DOMAIN)-SET,/.test(line))
   .map((line) => line.split(",")[1]);
 assert.equal(new Set(remoteSetUrls).size, remoteSetUrls.length, "remote set URLs must be unique");
-assert.ok(remoteSetUrls.length >= 13, "expected maintained remote rule and domain sets");
+assert.ok(remoteSetUrls.length >= 12, "expected maintained remote rule and domain sets");
 
 console.log(`PASS: Shadowrocket config (${groupNames.size} groups, ${ruleLines.length} rules, ${remoteSetUrls.length} remote sets)`);

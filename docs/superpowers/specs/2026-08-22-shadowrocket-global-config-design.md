@@ -1,5 +1,7 @@
 # Shadowrocket 国内外分流与 AI 固定出口配置设计
 
+> 历史设计快照：本文记录 2026-08-22 的初始方案，DNS、Hosts、国家组和 AI 服务范围已被后续提交调整。当前行为以仓库根目录 README、`shadowrocket-global.conf` 和自动化测试为准。
+
 ## 目标
 
 创建一份可直接导入 Shadowrocket 的完整配置 `shadowrocket-global.conf`：局域网、私网和国内网站直连；广告及追踪请求拒绝；Claude、OpenAI、Google/Gemini/Antigravity 等国外 AI 服务强制使用独立的美国或台湾节点；其他国外及未识别流量使用国外代理。
