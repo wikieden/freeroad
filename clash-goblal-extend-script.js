@@ -33,6 +33,13 @@ function main(config, name) {
   config["tcp-concurrent"] = true;
   config["disable-keep-alive"] = false; // 使用 Mihomo 官方字段，保持 TCP Keep Alive 启用
   config["mode"] = "rule";
+  // 固定 GeoSite/GeoIP 数据来源，避免不同客户端的内置数据库造成国内域名/IP 判定不一致。
+  // 不设置 geo-auto-update，继续尊重客户端原有的更新开关和频率。
+  config["geox-url"] = {
+    geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
+    geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
+    mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb"
+  };
 
   // ---------- 2. DNS（fake-ip + 防泄露）----------
   config["dns"] = {

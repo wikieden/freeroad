@@ -22,6 +22,7 @@ Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工�
 
 - [第一章：方案优势与核心能力](#overview)
 - [AI 服务分流策略](#ai-routing)
+- [国内外划分与直连白名单](#domestic-direct)
 - [DNS 与安全防护](#dns-security)
 - [第二章：账号地区限制与风险信号](#account-risk)
 - [第三章：AI 出口检测与验收](#ai-verification)
@@ -72,9 +73,19 @@ Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点
 
 Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用一方域名和明确专属端点，避免旧规则集把整站 Sentry、Intercom、Stripe、Auth0 等共享服务错误绑定到某个 AI 出口。国内 AI 不进入该统一组，仍按国内直连规则处理。
 
-### 国内直连，国外代理
+<a id="domestic-direct"></a>
 
-局域网、私网和国内网站直接连接，避免国内服务绕境外代理造成延迟升高、下载变慢或本地设备无法访问。国外网站和未识别流量默认进入代理，避免新出现的国外 AI 或开发者服务因为规则尚未收录而意外直连。
+### 国内外划分：国内直连、境外代理
+
+Freeroad 的默认模式是“国内外划分”：局域网、私网、中国域名和中国 IP 直接连接；境外网站和未识别流量默认进入代理。这样可以避免国内服务绕境外代理造成延迟升高、下载变慢或本地设备无法访问，同时避免新出现的境外 AI 或开发者服务因为尚未收录而意外直连。
+
+这里的“国内直连白名单”来自维护中的中国域名与 IP 数据集，而不是手工列举少量常见网站：
+
+- Clash/Mihomo 使用 `GEOSITE,cn,DIRECT` 与 `GEOIP,cn,DIRECT`，并固定从 [MetaCubeX meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat/releases/latest) 下载 GeoSite、GeoIP 与 MMDB 数据。
+- Shadowrocket 使用 `China_Domain.list`、`China.list` 与 `GEOIP,CN,DIRECT`。
+- 局域网和 RFC1918 私网地址始终优先直连。
+
+规则优先级保持为：AI 专用规则 → 广告拦截 → 国内直连白名单 → 默认境外代理。也就是说，Claude、OpenAI、Google/Gemini/Antigravity 等服务不会被“国内直连”误覆盖；对未命中中国域名/IP 列表的海外 CDN、境外站点和未知流量，默认仍走 `🎯 国外代理`。这与“让全部未知网站直连”的黑名单模式不同。
 
 Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可以手动进入美国、台湾、香港、日本、新加坡、韩国、欧洲或 `🌐 其他国家节点`。其他国家组会排除中国、回国、套餐提示和已单独分类的国家，并提供自动测速与具体节点选择。
 

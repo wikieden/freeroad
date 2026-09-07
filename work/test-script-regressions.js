@@ -23,6 +23,15 @@ const twice = context.main(once, "test");
 
 assert.equal(twice["disable-keep-alive"], false);
 assert.equal(Object.hasOwn(twice, "tcp-keep-alive"), false);
+assert.equal(
+  JSON.stringify(twice["geox-url"]),
+  JSON.stringify({
+    geoip: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
+    geosite: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
+    mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb"
+  }),
+  "Mihomo GeoSite, GeoIP, and MMDB sources must be pinned to MetaCubeX releases"
+);
 assert.equal(twice.rules.filter((rule) => rule === marker).length, 1);
 assert.equal(twice.rules.filter((rule) => rule === personalRule).length, 1);
 assert.equal(
