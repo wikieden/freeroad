@@ -26,6 +26,18 @@ function main(config, name) {
     ? incomingInDns.filter((server) => typeof server === "string" && server.trim())
     : [];
   const hasInternalInDns = internalInDns.length > 0;
+  // 保留用户全局扩展配置中显式声明的私有后缀 DNS 策略。
+  // 路由不在此处推断，仍须由用户在「编辑规则」中明确配置 DIRECT/代理策略。
+  const privateSuffixDnsPolicies = {};
+  if (incomingDnsPolicy && typeof incomingDnsPolicy === "object") {
+    Object.keys(incomingDnsPolicy).forEach((suffix) => {
+      if (suffix === "+.in" || !/^\+\.[a-z0-9.-]+$/i.test(suffix)) return;
+      const servers = incomingDnsPolicy[suffix];
+      if (!Array.isArray(servers)) return;
+      const validServers = servers.filter((server) => typeof server === "string" && server.trim());
+      if (validServers.length) privateSuffixDnsPolicies[suffix] = validServers;
+    });
+  }
 
   // ---------- 1. 基础 ----------
   config["ipv6"] = false;
@@ -51,7 +63,7 @@ function main(config, name) {
     "respect-rules": true,
     "use-hosts": true,
     "fake-ip-filter": [
-      "*.lan", "*.local", "*.localhost",
+      "localhost", "*.lan", "*.local", "*.localhost",
       "+.ntp.org.cn", "+.pool.ntp.org",
       "+.msftconnecttest.com", "+.msftncsi.com"
     ],
@@ -67,6 +79,9 @@ function main(config, name) {
     config["dns"]["fake-ip-filter"].push("+.in");
     config["dns"]["nameserver-policy"]["+.in"] = internalInDns.slice();
   }
+  Object.keys(privateSuffixDnsPolicies).forEach((suffix) => {
+    config["dns"]["nameserver-policy"][suffix] = privateSuffixDnsPolicies[suffix].slice();
+  });
 
   // ---------- 3. 嗅探 ----------
   config["sniffer"] = {
@@ -299,6 +314,9 @@ function main(config, name) {
     "DOMAIN-SUFFIX,feishu.net,DIRECT",
     "DOMAIN-SUFFIX,feishupkg.com,DIRECT",
 
+    // Pockyt 默认直连，避免未被国内域名集收录时落入境外代理。
+    "DOMAIN-SUFFIX,pockyt.io,DIRECT",
+
     // 广告规则位于 AI 规则之后，避免共享遥测域名先于 AI 一方域名被误拦截。
     "GEOSITE,category-ads-all,🚫 广告拦截",
 
@@ -350,6 +368,14 @@ function main(config, name) {
   // RFC1918 私网段 → DIRECT + no-resolve。
   const internalInRules = hasInternalInDns ? ["DOMAIN-SUFFIX,in,DIRECT"] : [];
   const universalRules = internalInRules.concat([
+    "DOMAIN,localhost,DIRECT",
+    "DOMAIN-SUFFIX,localhost,DIRECT",
+    "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+    "IP-CIDR6,::1/128,DIRECT,no-resolve",
+    "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve",
+    "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+    "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+    "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
     "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
     "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
     "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve"

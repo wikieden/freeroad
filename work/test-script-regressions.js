@@ -61,6 +61,36 @@ assert.deepEqual(Array.from(twice.dns["nameserver-policy"]["geosite:geolocation-
 assert.equal(twice.dns["nameserver-policy"]["+.in"], undefined);
 assert.equal(twice.dns["fake-ip-filter"].includes("+.in"), false);
 assert.equal(twice.rules.includes("DOMAIN-SUFFIX,in,DIRECT"), false);
+assert.ok(twice.dns["fake-ip-filter"].includes("localhost"), "localhost must bypass fake-IP");
+for (const loopbackRule of [
+  "DOMAIN,localhost,DIRECT",
+  "DOMAIN-SUFFIX,localhost,DIRECT",
+  "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+  "IP-CIDR6,::1/128,DIRECT,no-resolve",
+  "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve",
+  "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+  "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+  "IP-CIDR6,fe80::/10,DIRECT,no-resolve"
+]) {
+  assert.ok(twice.rules.includes(loopbackRule), `missing loopback direct rule: ${loopbackRule}`);
+}
+
+const privateDomainDns = ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"];
+const privateDomain = context.main({
+  proxies: [{ name: "US-A", type: "ss" }],
+  rules: [],
+  dns: { "nameserver-policy": { "+.internal.example": privateDomainDns } }
+}, "private-domain");
+assert.deepEqual(
+  Array.from(privateDomain.dns["nameserver-policy"]["+.internal.example"]),
+  privateDomainDns,
+  "explicit private suffix DNS policies must survive the global script"
+);
+assert.equal(
+  privateDomain.rules.includes("DOMAIN-SUFFIX,internal.example,DIRECT"),
+  false,
+  "a private DNS policy must not implicitly override routing"
+);
 
 const internalDns = "192.0.2.53";
 const internalIn = context.main({
@@ -108,10 +138,11 @@ for (const directRule of [
   "DOMAIN-SUFFIX,feishu.cn,DIRECT",
   "DOMAIN-SUFFIX,feishucdn.com,DIRECT",
   "DOMAIN-SUFFIX,feishu.net,DIRECT",
-  "DOMAIN-SUFFIX,feishupkg.com,DIRECT"
+  "DOMAIN-SUFFIX,feishupkg.com,DIRECT",
+  "DOMAIN-SUFFIX,pockyt.io,DIRECT"
 ]) {
   const directRuleIndex = twice.rules.indexOf(directRule);
-  assert.notEqual(directRuleIndex, -1, `missing Feishu direct rule: ${directRule}`);
-  assert.ok(directRuleIndex < advertisingRuleIndex, `Feishu direct rule must precede advertising: ${directRule}`);
+  assert.notEqual(directRuleIndex, -1, `missing explicit direct rule: ${directRule}`);
+  assert.ok(directRuleIndex < advertisingRuleIndex, `explicit direct rule must precede advertising: ${directRule}`);
 }
 console.log("PASS: Keep Alive fields and repeated execution");

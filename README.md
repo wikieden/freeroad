@@ -83,7 +83,7 @@ Freeroad 的默认模式是“国内外划分”：局域网、私网、中国�
 
 - Clash/Mihomo 使用 `GEOSITE,cn,DIRECT` 与 `GEOIP,cn,DIRECT`，并固定从 [MetaCubeX meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat/releases/latest) 下载 GeoSite、GeoIP 与 MMDB 数据。
 - Shadowrocket 使用 `China_Domain.list`、`China.list` 与 `GEOIP,CN,DIRECT`。
-- 局域网和 RFC1918 私网地址始终优先直连。
+- 局域网和 RFC1918 私网地址始终优先直连；回环、CGNAT（`100.64.0.0/10`）、IPv4/IPv6 链路本地地址及 IPv6 ULA 也不进入代理。`198.18.0.0/15` 保留给 Clash fake-IP 映射，不能加入直连名单。
 
 规则优先级保持为：AI 专用规则 → 广告拦截 → 国内直连白名单 → 默认境外代理。也就是说，Claude、OpenAI、Google/Gemini/Antigravity 等服务不会被“国内直连”误覆盖；对未命中中国域名/IP 列表的海外 CDN、境外站点和未知流量，默认仍走 `🎯 国外代理`。这与“让全部未知网站直连”的黑名单模式不同。
 
@@ -95,7 +95,7 @@ Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可
 
 Shadowrocket 配置的所有解析路径都只使用 HTTPS DoH，并关闭系统 DNS 参与。DoH 使用通过 TLS 校验的 IP 端点，避免解析 DoH 服务域名时再次依赖引导 DNS。所有硬编码到 UDP/TCP 53 端口的明文 DNS 请求会被接管。直连和节点引导 DoH 使用 `#no-h3`；代理 DoH 使用 Shadowrocket 官方的 `#proxy` 写法，并由 `block-quic = all-proxy` 阻止代理 QUIC 回落。
 
-国内直连域名只使用国内加密 DoH，以保留国内 CDN 和局域网使用体验；代理类域名由 Shadowrocket 按实际代理规则交给代理节点远程解析。默认与备用 DNS 使用 Cloudflare/Google 境外 DoH，并通过默认代理转发，不接触国内解析器。
+Shadowrocket 的国内直连域名使用 AliDNS DoH（`https://223.5.5.5/dns-query#no-h3`）；国内 DNS 端点 IP 显式直连，不依赖 GeoIP 数据库判断。代理类域名由 Shadowrocket 按实际代理规则交给代理节点远程解析。默认与备用 DNS 使用 Cloudflare/Google 境外 DoH，并通过默认代理转发。国内解析仅使用 AliDNS，因此 AliDNS 不可达时会解析失败，不会切换到代理；此调整仍需在实际客户端验证是否改善访问延迟。
 
 代理节点自身域名必须在代理建立前解析，不能依赖尚未建立的代理。该引导步骤单独使用 AliDNS/DNSPod 加密 DoH，避免部分网络无法直连境外 DoH 时导致所有代理失效。国内解析器在这里最多看到代理节点的服务器域名，不会用于解析 ChatGPT、Claude、Google 或其他代理网站。
 
@@ -328,9 +328,9 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 `.in` 是真实的印度国家顶级域名，不能直接写入公开通用模板。只有在明确知道整个 `.in` 后缀都属于自己的本地内网时，才可以在私人副本中把 `internal.example` 替换为 `in`。
 
-Clash Verge Rev 用户可复制 [`templates/clash-internal-dns.example.yaml`](./templates/clash-internal-dns.example.yaml)，替换 `<内部 DNS IP>` 后粘贴到“全局扩展配置”。本仓库的全局扩展脚本会读取 `+.in` 策略，并自动补齐 fake-IP 排除、嗅探排除和 `DOMAIN-SUFFIX,in,DIRECT`。未配置该策略时，公开脚本不会接管公网 `.in` 域名。
+Clash Verge Rev 用户可复制 [`templates/clash-internal-dns.example.yaml`](./templates/clash-internal-dns.example.yaml)，将 `internal.example` 与占位 DNS 替换为自己的私有配置后粘贴到“全局扩展配置”。全局扩展脚本会保留任意显式的 `+.私有域名` DNS 策略；路由不由 DNS 策略自动推断，仍须在订阅“编辑规则”中用 `DOMAIN-SUFFIX,你的域名,DIRECT` 明确声明。
 
-不要把 `rules` 写进这份全局扩展配置：部分 Clash Verge Rev 版本会整体覆盖订阅规则。`.in` 的直连规则继续由全局扩展脚本生成。
+不要把 `rules` 写进这份全局扩展配置：部分 Clash Verge Rev 版本会整体覆盖订阅规则。为兼容既有私有 `.in` 配置，脚本仍会对 `+.in` 自动补齐 fake-IP 排除、嗅探排除和 `DOMAIN-SUFFIX,in,DIRECT`；未配置时，公开脚本不会接管公网 `.in` 域名。
 
 系统 `/etc/hosts` 不会自动复制到 Shadowrocket，需要使用的条目应手工放入本地模块。真实内部域名、内部 DNS、固定 IP 和公司配置不得提交到公开仓库。建议把私人模块保存在仓库外的独立目录；发布或提交前运行 `git status` 确认它没有进入版本控制。
 

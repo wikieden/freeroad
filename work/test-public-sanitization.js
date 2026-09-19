@@ -31,7 +31,9 @@ const result = context.main({
 assert.equal(result.proxies.some((proxy) => proxy && proxy.type === "http"), false);
 assert.equal(result["proxy-groups"].some((group) => /Kiro/i.test(group.name)), false);
 assert.doesNotMatch(source, /公司|内网|relay/i);
-assert.match(internalDnsTemplate, /<内部 DNS IP>/);
+assert.match(internalDnsTemplate, /\+\.internal\.example/);
+assert.match(internalDnsTemplate, /https:\/\/223\.5\.5\.5\/dns-query/);
+assert.match(internalDnsTemplate, /https:\/\/1\.12\.12\.12\/dns-query/);
 const privateDnsAddress = [172, 16, 4, 103].join(".");
 assert.ok(!internalDnsTemplate.includes(privateDnsAddress), "public Clash template must not contain the private DNS address");
 assert.doesNotMatch(internalDnsTemplate, /^rules:/m, "public global config template must not overwrite subscription rules");

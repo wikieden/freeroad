@@ -42,6 +42,7 @@ assert.equal(hosts.get("*.local"), "server:system", "mDNS/local domains must use
 assert.equal(hosts.get("*.lan"), "server:system", "LAN domains must use the local resolver");
 assert.equal(hosts.get("*.home.arpa"), "server:system", "home.arpa domains must use the local resolver");
 assert.equal(hosts.get("localhost"), "127.0.0.1", "localhost must remain local");
+assert.match(general.get("skip-proxy"), /(?:^|,)localhost(?:,|$)/, "localhost must bypass the proxy");
 
 for (const key of ["dns-server", "direct-dns-server", "fallback-dns-server", "proxy-dns-server"]) {
   const endpoints = general.get(key)?.split(",").map((endpoint) => endpoint.trim()) ?? [];
@@ -183,6 +184,16 @@ for (const { country, automatic, allowed, rejected } of countryFixtures) {
 
 const ruleLines = activeLines.slice(ruleStart + 1);
 assert.equal(ruleLines.at(-1), "FINAL,🎯 国外代理");
+for (const loopbackRule of [
+  "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+  "IP-CIDR6,::1/128,DIRECT,no-resolve",
+  "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve",
+  "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+  "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+  "IP-CIDR6,fe80::/10,DIRECT,no-resolve"
+]) {
+  assert.ok(ruleLines.includes(loopbackRule), `missing loopback direct rule: ${loopbackRule}`);
+}
 for (const sharedClaudeRule of [
   "DOMAIN-SUFFIX,statsigapi.net,🧠 Claude",
   "DOMAIN-SUFFIX,intercom.io,🧠 Claude",
@@ -240,9 +251,10 @@ for (const directRule of [
   "DOMAIN-SUFFIX,feishu.cn,DIRECT",
   "DOMAIN-SUFFIX,feishucdn.com,DIRECT",
   "DOMAIN-SUFFIX,feishu.net,DIRECT",
-  "DOMAIN-SUFFIX,feishupkg.com,DIRECT"
+  "DOMAIN-SUFFIX,feishupkg.com,DIRECT",
+  "DOMAIN-SUFFIX,pockyt.io,DIRECT"
 ]) {
-  assert.ok(indexOfRule(directRule) < advertisingIndex, `Feishu direct rule must precede advertising: ${directRule}`);
+  assert.ok(indexOfRule(directRule) < advertisingIndex, `explicit direct rule must precede advertising: ${directRule}`);
 }
 assert.ok(advertisingIndex < chinaIndex, "advertising must precede China direct rules");
 assert.ok(chinaIndex < ruleLines.length - 1, "China direct rules must precede FINAL");
