@@ -131,12 +131,14 @@ for (const node of [
 }
 
 const majorCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
+const majorAutomatic = ["♻️ 美国自动", "♻️ 台湾自动", "♻️ 日本自动", "♻️ 新加坡自动"];
 for (const groupName of ["🧠 Claude", "✨ OpenAI/AI"]) {
   const line = groupLines.find((candidate) => candidate.startsWith(`${groupName} =`));
   assert.match(line, /=\s*select,/);
   assert.match(line, /policy-regex-filter=/);
   assert.doesNotMatch(line, /url-test|欧洲节点/);
-  assert.deepEqual(line.match(/=\s*select,(.*),policy-regex-filter=/)[1].split(","), majorCountries);
+  const expectedChoices = majorCountries.concat(majorAutomatic);
+  assert.deepEqual(line.match(/=\s*select,(.*),policy-regex-filter=/)[1].split(","), expectedChoices);
 
   const filter = line.match(/policy-regex-filter=(.*),select=0$/)[1];
   const matcher = new RegExp(filter.replace(/^\(\?i\)/, ""), "i");
@@ -150,16 +152,18 @@ for (const groupName of ["🧠 Claude", "✨ OpenAI/AI"]) {
 
 const googleAiLine = groupLines.find((candidate) => candidate.startsWith("🔷 Google/Gemini/Antigravity ="));
 assert.doesNotMatch(googleAiLine, /policy-regex-filter=|url-test|欧洲节点/);
-assert.deepEqual(googleAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","), majorCountries);
+assert.deepEqual(googleAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","), majorCountries.concat(majorAutomatic));
 
 const otherAiLine = groupLines.find((candidate) => candidate.startsWith("🤖 其他 AI 服务 ="));
 assert.doesNotMatch(otherAiLine, /policy-regex-filter=|url-test/);
 assert.deepEqual(
   otherAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
-  majorCountries.concat("🇪🇺 欧洲节点")
+  majorCountries.concat("🇪🇺 欧洲节点", majorAutomatic, "♻️ 欧洲自动")
 );
 
 const countryFixtures = [
+  { country: "🇭🇰 香港节点", automatic: "♻️ 香港自动", allowed: ["HK-A", "香港-A"], rejected: ["韩国-A", "香港-剩余流量"] },
+  { country: "🇰🇷 韩国节点", automatic: "♻️ 韩国自动", allowed: ["KR-A", "Seoul-A"], rejected: ["香港-A", "韩国-套餐到期"] },
   { country: "🇺🇸 美国节点", automatic: "♻️ 美国自动", allowed: ["🇺🇸 US-A", "美国-洛杉矶-01", "Seattle-01"], rejected: ["Russia-01", "日本-东京-01", "美国-剩余流量 50 GB"] },
   { country: "🌏 台湾节点", automatic: "♻️ 台湾自动", allowed: ["🇹🇼 TW-A", "台湾-台北-01", "Kaohsiung-01"], rejected: ["Russia-01", "新加坡-A", "台湾-套餐到期"] },
   { country: "🇯🇵 日本节点", automatic: "♻️ 日本自动", allowed: ["🇯🇵 JP-A", "日本-东京-01", "Fukuoka-01"], rejected: ["Russia-01", "美国-Seattle-01", "日本-剩余流量 50 GB"] },
