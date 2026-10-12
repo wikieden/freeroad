@@ -240,7 +240,8 @@ for (const fragment of [
   "DOMAIN-SUFFIX,cursorapi.com,🤖 其他 AI 服务",
   "DOMAIN-SUFFIX,huggingface.co,🤖 其他 AI 服务",
   "DOMAIN-SUFFIX,grok.com,🤖 其他 AI 服务",
-  "DOMAIN-SUFFIX,kiro.dev,🤖 其他 AI 服务"
+  "DOMAIN-SUFFIX,kiro.dev,🤖 其他 AI 服务",
+  "DOMAIN-SUFFIX,typesafe.ai,🤖 其他 AI 服务"
 ]) {
   aiIndices.push(indexOfRule(fragment));
 }

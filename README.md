@@ -70,6 +70,9 @@ Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点
 | `✨ OpenAI/AI` | ChatGPT、OpenAI API、Codex 与一方资源 | 美国、台湾、日本、新加坡 |
 | `🔷 Google/Gemini/Antigravity` | Google 登录和全家桶、Gemini、Antigravity、YouTube | 美国、台湾、日本、新加坡 |
 | `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Mistral、Poe、Cohere、OpenRouter 等境外 AI | 美国、台湾、日本、新加坡、欧洲 |
+| `🎮 Steam` | Steam 商店、社区及相关服务 | 自动代理、直连及现有地区组 |
+
+Steam 使用独立的 `🎮 Steam` 策略组，默认自动代理，可以单独选择地区或直连。两端使用相同的显式域名表：商店、社区、客户端连接（包括 `cm.steampowered.com`）、云存档和用户内容走独立组；`steamcontent.com` 下载 CDN 及列出的中国服务优先直连，不受该组选择影响。其他海外下载域名仍走独立组，不保证所有下载都直连。规则不包含 Humble Bundle、Fanatical、SteamUnlocked 等第三方站点，也不使用宽泛关键词匹配。Steam 规则位于国内及境外通用规则之前；新增域名需要更新配置。
 
 Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用一方域名和明确专属端点，避免旧规则集把整站 Sentry、Intercom、Stripe、Auth0 等共享服务错误绑定到某个 AI 出口。国内 AI 不进入该统一组，仍按国内直连规则处理。
 
@@ -233,6 +236,13 @@ https://raw.githubusercontent.com/wikieden/freeroad/main/shadowrocket-global.con
 <a id="clash-verge-rev"></a>
 
 ## 第六章：Clash Verge Rev
+
+### 多订阅源聚合
+
+全局脚本同时支持内嵌 `proxies` 和 `proxy-providers`。将私密聚合 YAML 导入为本地配置，再启用本仓库最新版全局脚本即可。订阅地址、节点凭据与生成的完整配置只保存在本地，不要上传 GitHub。
+
+Provider 节点由 Mihomo 在订阅更新后按名称动态筛选到地区组，套餐提示节点会排除；HTTP provider 应配置自己的 `health-check`。因为脚本无法预先读取远程节点，provider 模式会显示全部地区组，空地区组使用 `REJECT`，不会回落直连。Claude/OpenAI 同时展示国家组和美、台、日、新的具体节点，支持各自直接固定一个 provider 或内嵌节点。仅有内嵌节点时继续只显示存在的地区。
+
 
 验证基线：[Clash Verge Rev v2.5.2](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/v2.5.2)。官方扩展机制支持通过 `main(config, profileName)` 修改订阅生成的配置。
 

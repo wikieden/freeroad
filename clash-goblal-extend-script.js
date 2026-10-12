@@ -104,7 +104,19 @@ function main(config, name) {
 
   // ---------- 4. 清洗 + 按地区归类（加固正则，防跨订阅误配）----------
   if (!Array.isArray(config.proxies)) config.proxies = [];
-  const isTip = (n) => /(流量|重置|过期|到期|套餐|官网|发布|公告|网站|网址|不懂|剩余|续费|购买|客服)/i.test(n);
+  const tipPattern = "流量|重置|过期|到期|套餐|官网|发布|公告|网站|网址|不懂|剩余|续费|购买|客服";
+  const isTip = (n) => new RegExp(tipPattern, "i").test(n);
+  const providerNames = Object.keys(config["proxy-providers"] || {});
+  const hasProviders = providerNames.length > 0;
+  // 脚本运行时看不到 HTTP provider 内容，由内核在下载/更新后动态筛选。
+  const withProviders = (group, filter, excluded) => {
+    if (!hasProviders) return group;
+    group.use = providerNames.slice();
+    if (filter) group.filter = "(?i)" + filter;
+    group["exclude-filter"] = "(?i)" + [tipPattern].concat(excluded || []).join("|");
+    group["empty-fallback"] = "REJECT";
+    return group;
+  };
 
   // 地区定义：中文关键词 + 词边界限定的拉丁码。
   // 词边界 \b 是关键：避免 Russia→US（含 "us"）、Fukuoka→UK（含 "uk"）、Sweden→DE 这类子串误配。
@@ -140,30 +152,33 @@ function main(config, name) {
   const regionGroups = [];
   const autoGroups = [];
   const REGION_NAMES = [];
-  REGIONS.forEach(r => {
+  REGIONS.forEach((r, index) => {
+    const excluded = REGIONS.slice(0, index).map(region => region.re.source);
     const nodes = buckets[r.key];
-    if (nodes.length === 0) return;
+    if (nodes.length === 0 && !hasProviders) return;
     const gname = r.key + "节点";
     if (r.auto) {
       const aname = "♻️ " + r.key.split(/\s+/).pop() + "自动";
-      autoGroups.push({ name: aname, type: "url-test", proxies: nodes.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 });
-      regionGroups.push({ name: gname, type: "select", proxies: [aname].concat(nodes) }); // 手自一体：默认自动，可手动钉
+      autoGroups.push(withProviders({ name: aname, type: "url-test", proxies: nodes.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, r.re.source, excluded));
+      regionGroups.push(withProviders({ name: gname, type: "select", proxies: [aname].concat(nodes) }, r.re.source, excluded)); // 手自一体：默认自动，可手动钉
     } else {
-      regionGroups.push({ name: gname, type: "select", proxies: nodes.slice() });          // 纯手动
+      regionGroups.push(withProviders({ name: gname, type: "select", proxies: nodes.slice() }, r.re.source, excluded));          // 纯手动
     }
     REGION_NAMES.push(gname);
   });
-  if (others.length > 0) {
-    autoGroups.push({ name: "♻️ 其它自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 });
-    regionGroups.push({ name: "🌐 其它地区", type: "select", proxies: ["♻️ 其它自动"].concat(others) }); // 手自一体
+  if (others.length > 0 || hasProviders) {
+    autoGroups.push(withProviders({ name: "♻️ 其它自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, null, REGIONS.map(r => r.re.source)));
+    regionGroups.push(withProviders({ name: "🌐 其它地区", type: "select", proxies: ["♻️ 其它自动"].concat(others) }, null, REGIONS.map(r => r.re.source))); // 手自一体
     REGION_NAMES.push("🌐 其它地区");
   }
 
   const globalAuto = {
     name: "♻️ 全局自动", type: "url-test",
-    proxies: all.length ? all.slice() : ["DIRECT"],
+    proxies: all.length ? all.slice() : (hasProviders ? [] : ["DIRECT"]),
     url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50
   };
+
+  withProviders(globalAuto);
 
   const mainGroup = {
     name: "🎯 全局分流", type: "select",
@@ -173,7 +188,7 @@ function main(config, name) {
 
   // 三大 AI 组引用美、台、日、新国家组；Claude/OpenAI 再追加同范围具体节点快捷入口。
   // 其它 AI 在国家组范围上增加欧洲。自动测速始终限制在已选择的国家内部。
-  const existingRegionGroup = (key) => buckets[key].length > 0 ? key + "节点" : null;
+  const existingRegionGroup = (key) => (buckets[key].length > 0 || hasProviders) ? key + "节点" : null;
   const majorAiRegionKeys = ["🇺🇸 美国", "🌏 台湾", "🇯🇵 日本", "🇸🇬 新加坡"];
   const majorAiRegionGroups = majorAiRegionKeys
     .map(existingRegionGroup)
@@ -203,6 +218,13 @@ function main(config, name) {
     proxies: quickAiProxies
   };
 
+  // Provider 节点同样直接出现在 Claude/OpenAI 中，支持各自固定单个节点。
+  const majorAiProviderFilter = REGIONS
+    .filter(r => majorAiRegionKeys.indexOf(r.key) >= 0)
+    .map(r => r.re.source).join("|");
+  withProviders(claudeGroup, majorAiProviderFilter);
+  withProviders(aiGroup, majorAiProviderFilter);
+
   // 其他境外 AI：在美、台、日、新之外提供欧洲国家组；国内 AI 仍不进入本组。
   const otherAiGroup = {
     name: "🤖 其他 AI 服务", type: "select",
@@ -215,9 +237,13 @@ function main(config, name) {
   };
 
   const adsGroup = { name: "🚫 广告拦截", type: "select", proxies: ["REJECT", "DIRECT"] };
+  const steamGroup = {
+    name: "🎮 Steam", type: "select",
+    proxies: ["♻️ 全局自动", "DIRECT"].concat(REGION_NAMES)
+  };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, mainGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, mainGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   config["rules"] = [
@@ -304,9 +330,10 @@ function main(config, name) {
     "DOMAIN-SUFFIX,manus.im,🤖 其他 AI 服务",
     "DOMAIN-SUFFIX,codeium.com,🤖 其他 AI 服务",
     "DOMAIN-SUFFIX,windsurf.com,🤖 其他 AI 服务",
+    "DOMAIN-SUFFIX,typesafe.ai,🤖 其他 AI 服务",
     "GEOSITE,category-ai-!cn,🤖 其他 AI 服务",
     // 其他 AI 节点不支持 UDP 时同样失败关闭，不允许继续落入普通国外组。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,pplx.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,cursorapi.com),(DOMAIN-SUFFIX,cursor-cdn.com),(DOMAIN-SUFFIX,huggingface.co),(DOMAIN-SUFFIX,hf.co),(DOMAIN-SUFFIX,x.ai),(DOMAIN-SUFFIX,grok.com),(DOMAIN-SUFFIX,kiro.dev),(DOMAIN-SUFFIX,kiro.aws.dev),(DOMAIN,q.us-east-1.amazonaws.com),(DOMAIN,q.eu-central-1.amazonaws.com),(DOMAIN,cognito-identity.us-east-1.amazonaws.com),(GEOSITE,category-ai-!cn)))),REJECT",
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,perplexity.ai),(DOMAIN-SUFFIX,pplx.ai),(DOMAIN-SUFFIX,cursor.sh),(DOMAIN-SUFFIX,cursor.com),(DOMAIN-SUFFIX,cursorapi.com),(DOMAIN-SUFFIX,cursor-cdn.com),(DOMAIN-SUFFIX,huggingface.co),(DOMAIN-SUFFIX,hf.co),(DOMAIN-SUFFIX,x.ai),(DOMAIN-SUFFIX,grok.com),(DOMAIN-SUFFIX,kiro.dev),(DOMAIN-SUFFIX,kiro.aws.dev),(DOMAIN,q.us-east-1.amazonaws.com),(DOMAIN,q.eu-central-1.amazonaws.com),(DOMAIN,cognito-identity.us-east-1.amazonaws.com),(DOMAIN-SUFFIX,typesafe.ai),(GEOSITE,category-ai-!cn)))),REJECT",
 
     // 飞书中国站及静态资源显式直连，避免域名集遗漏后落入国外代理造成绕境卡顿。
     "DOMAIN-SUFFIX,feishu.cn,DIRECT",
@@ -319,6 +346,60 @@ function main(config, name) {
 
     // 广告规则位于 AI 规则之后，避免共享遥测域名先于 AI 一方域名被误拦截。
     "GEOSITE,category-ads-all,🚫 广告拦截",
+
+    // Steam：与 Shadowrocket 同一显式域名表；下载 / 中国服务直连，客户端连接使用独立组。
+    "DOMAIN-SUFFIX,steamcontent.com,DIRECT",
+    "DOMAIN-SUFFIX,steamchina.com,DIRECT",
+    "DOMAIN-SUFFIX,csgo.com.cn,DIRECT",
+    "DOMAIN-SUFFIX,csgo.wmsj.cn,DIRECT",
+    "DOMAIN-SUFFIX,dota2.com.cn,DIRECT",
+    "DOMAIN-SUFFIX,dota2.wmsj.cn,DIRECT",
+    "DOMAIN-SUFFIX,wmsjsteam.com,DIRECT",
+    "DOMAIN-SUFFIX,client-update.queniuqe.com,DIRECT",
+    "DOMAIN-SUFFIX,dl.steam.clngaa.com,DIRECT",
+    "DOMAIN-SUFFIX,dl.steam.ksyna.com,DIRECT",
+    "DOMAIN-SUFFIX,st.dl.bscstorage.net,DIRECT",
+    "DOMAIN-SUFFIX,st.dl.eccdnx.com,DIRECT",
+    "DOMAIN-SUFFIX,st.dl.pinyuncloud.com,DIRECT",
+    "DOMAIN-SUFFIX,steampowered.com.8686c.com,DIRECT",
+    "DOMAIN-SUFFIX,steamstatic.com.8686c.com,DIRECT",
+    "DOMAIN,steampipe.steamcontent.tnkjmec.com,DIRECT",
+    "DOMAIN,lv.queniujq.cn,DIRECT",
+    "DOMAIN,xz.pphimalayanrt.com,DIRECT",
+    "DOMAIN,gstore.val.manlaxy.com,DIRECT",
+    "DOMAIN-SUFFIX,steampowered.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steamcommunity.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steamstatic.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steamserver.net,🎮 Steam",
+    "DOMAIN-SUFFIX,steamusercontent.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steamconnecttest.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steam-api.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steam-chat.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steam.tv,🎮 Steam",
+    "DOMAIN-SUFFIX,steamdeck.com,🎮 Steam",
+    "DOMAIN-SUFFIX,steamgames.com,🎮 Steam",
+    "DOMAIN-SUFFIX,s.team,🎮 Steam",
+    "DOMAIN-SUFFIX,valve.net,🎮 Steam",
+    "DOMAIN-SUFFIX,valvesoftware.com,🎮 Steam",
+    "DOMAIN-SUFFIX,playartifact.com,🎮 Steam",
+    "DOMAIN-SUFFIX,underlords.com,🎮 Steam",
+    "DOMAIN-SUFFIX,dota2.com,🎮 Steam",
+    "DOMAIN,steamcommunity-a.akamaihd.net.edgesuite.net,🎮 Steam",
+    "DOMAIN,a4e8s8k3.map2.ssl.hwcdn.net,🎮 Steam",
+    "DOMAIN,f3b7q2p3.ssl.hwcdn.net,🎮 Steam",
+    "DOMAIN,steambroadcast.akamaized.net,🎮 Steam",
+    "DOMAIN,steamcdn-a.akamaihd.net,🎮 Steam",
+    "DOMAIN,steamcommunity-a.akamaihd.net,🎮 Steam",
+    "DOMAIN,steammobile.akamaized.net,🎮 Steam",
+    "DOMAIN,steampipe-kr.akamaized.net,🎮 Steam",
+    "DOMAIN,steampipe-partner.akamaized.net,🎮 Steam",
+    "DOMAIN,steampipe.akamaized.net,🎮 Steam",
+    "DOMAIN,steamstore-a.akamaihd.net,🎮 Steam",
+    "DOMAIN,steamusercontent-a.akamaihd.net,🎮 Steam",
+    "DOMAIN,steamuserimages-a.akamaihd.net,🎮 Steam",
+    "DOMAIN,steamvideo-a.akamaihd.net,🎮 Steam",
+    "DOMAIN,steamcloudsweden.blob.core.windows.net,🎮 Steam",
+    "DOMAIN,steamugcquincy.blob.core.windows.net,🎮 Steam",
 
     // 社交 / 媒体（折叠，无独立组）
     "GEOSITE,telegram,🎯 全局分流",
