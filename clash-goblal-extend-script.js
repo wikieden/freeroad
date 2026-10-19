@@ -104,7 +104,7 @@ function main(config, name) {
 
   // ---------- 4. 清洗 + 按地区归类（加固正则，防跨订阅误配）----------
   if (!Array.isArray(config.proxies)) config.proxies = [];
-  const tipPattern = "流量|重置|过期|到期|套餐|官网|发布|公告|网站|网址|不懂|剩余|续费|购买|客服";
+  const tipPattern = "支持[ _-]*AI[ :：]|流量(?:剩余|不足|耗尽|重置|用尽)|重置|过期|到期|套餐|官网|发布|公告|网站|网址|不懂|剩余|续费|购买|客服";
   const isTip = (n) => new RegExp(tipPattern, "i").test(n);
   const providerNames = Object.keys(config["proxy-providers"] || {});
   const hasProviders = providerNames.length > 0;
@@ -118,13 +118,13 @@ function main(config, name) {
     return group;
   };
 
-  // 地区定义：中文关键词 + 词边界限定的拉丁码。
-  // 词边界 \b 是关键：避免 Russia→US（含 "us"）、Fukuoka→UK（含 "uk"）、Sweden→DE 这类子串误配。
+  // 地区定义：国家中文名 / 英文全名按包含匹配；USA 也允许与名称、编号连写。
+  // US 等短码仍保留字母边界，避免 Russia→US、Fukuoka→UK 等子串误配。
   // 顺序即展示顺序：美国排最前，也是分类优先级（多匹配取第一个）。
   // auto:true = 该区做手自一体（默认自动测速、可手动钉）。现在全部地区都开。
   // AI 策略组先选择国家组，再由国家组选择自动测速或具体节点；自动测速不会跨国家。
   const REGIONS = [
-    { key: "🇺🇸 美国",  re: /美国|\bUSA?\b|United\s?States|America|洛杉矶|圣何塞|硅谷|Seattle|New\s?York|Dallas|Chicago|Phoenix|西雅图|纽约|芝加哥|达拉斯|凤凰城/i, auto: true },
+    { key: "🇺🇸 美国",  re: /美国|USA|(?:^|[^A-Za-z])US(?:$|[^A-Za-z])|United\s?States|America|洛杉矶|圣何塞|硅谷|Seattle|New\s?York|Dallas|Chicago|Phoenix|西雅图|纽约|芝加哥|达拉斯|凤凰城/i, auto: true },
     { key: "🇭🇰 香港",  re: /香港|\bHK\b|Hong\s?Kong/i, auto: true },
     { key: "🇯🇵 日本",  re: /日本|\bJP\b|Japan|东京|大阪|Fukuoka|Nagoya|福冈|福岡|名古屋/i, auto: true },
     { key: "🇸🇬 新加坡", re: /新加坡|狮城|\bSG\b|Singapore/i, auto: true },

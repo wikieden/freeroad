@@ -13,7 +13,8 @@ Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工�
 - 局域网和国内网站直连。
 - 广告与追踪请求拒绝。
 - Claude、OpenAI、Google/Gemini/Antigravity 使用相互独立的国家选择组。
-- Perplexity、Cursor、Hugging Face、Grok、Kiro 等境外 AI 统一进入 `🤖 其他 AI 服务`。
+- Perplexity、Cursor、Hugging Face、Grok、Kiro、Typesafe（`typesafe.ai` 及其子域名）等境外 AI 统一进入 `🤖 其他 AI 服务`。
+- Steam 商店、社区及客户端使用 `🎮 Steam` 独立组，明确的下载 CDN 和中国服务优先直连。
 - 其他国外及未识别流量走代理。
 
 > 这些文件只提供配置与分流规则，不提供代理节点。使用前需要准备兼容相应客户端的节点订阅。
@@ -22,6 +23,7 @@ Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工�
 
 - [第一章：方案优势与核心能力](#overview)
 - [AI 服务分流策略](#ai-routing)
+- [Steam 独立分流](#steam-routing)
 - [国内外划分与直连白名单](#domestic-direct)
 - [DNS 与安全防护](#dns-security)
 - [第二章：账号地区限制与风险信号](#account-risk)
@@ -33,6 +35,7 @@ Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工�
 - [第八章：Shadowrocket](#shadowrocket)
 - [本地内网 Hosts 模板](#internal-hosts)
 - [第九章：Clash Meta for Android](#clash-meta-android)
+- [软路由：RouterOS（ROS）与爱快（iKuai）](#soft-router)
 - [第十章：常见问题](#faq)
 
 ## 一分钟选择客户端
@@ -43,6 +46,7 @@ Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工�
 | Android、Windows、macOS、Linux / FlClash | [`clash-goblal-extend-script.js`](./clash-goblal-extend-script.js) | 使用 FlClash 脚本覆写，希望订阅更新后继续保留统一分流策略 |
 | iPhone、iPad、Mac、Apple TV / Shadowrocket | [`shadowrocket-global.conf`](./shadowrocket-global.conf) | 需要可直接导入的完整配置、国家节点组、DoH 和广告过滤 |
 | Android / Clash Meta for Android | 自建完整 Clash/Mihomo YAML | 需要在本地 YAML 中配置私密 `proxy-providers`，不能直接导入本仓库 JS/CONF |
+| RouterOS（ROS）／爱快（iKuai）主路由 + Mihomo 旁路由 | 脚本生成的完整 Clash/Mihomo YAML | 主路由负责网络接入，OpenWrt／Linux 旁路由执行分流；需配置流量和 DNS 接管 |
 
 <a id="overview"></a>
 
@@ -57,7 +61,8 @@ Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组；其�
 前三个 AI 组提供美国、台湾、日本、新加坡；`🤖 其他 AI 服务` 额外提供欧洲。进入国家组后默认使用该国家的自动测速，也可以固定一个具体节点。自动测速只在同一国家内部进行，但仍可能更换出口 IP；账号稳定性优先时应改选具体节点。
 
 为了减少常用服务的选择步骤，`🧠 Claude` 和 `✨ OpenAI/AI` 会在四个国家组之后，再直接列出美、台、日、新具体节点。国家组仍排在前面，所以默认行为不变；Clash/Mihomo 的 Google 和其他 AI 继续只显示国家组，避免列表过长。
-Shadowrocket 的应用组还直接提供地区自动测速快捷选项：Claude、OpenAI、Google 提供美、台、日、新自动；其他 AI 再增加欧洲自动；Steam 提供全部地区自动（含香港、韩国及其他国家）。各地区组仍可进入后固定具体节点，自动测速只在对应地区内切换。
+
+Shadowrocket 的应用组配置还直接引用地区自动测速快捷选项，具体范围见第八章。各地区组仍可进入后固定具体节点；自动测速只在对应地区内切换，不验证 Claude 登录、账号状态或目标应用可用性。
 
 这样可以减少会话过程中出口地区或 IP 频繁变化导致的重新登录、连接中断和异常验证风险。但配置不能保证账号绝对不触发风控，最终效果仍取决于节点质量、IP 信誉、账号地区和使用行为。
 
@@ -70,12 +75,25 @@ Clash/Mihomo 脚本还对四个 AI 组采用 UDP 失败关闭：所选 AI 节点
 | `🧠 Claude` | Claude、Anthropic API 与一方资源 | 美国、台湾、日本、新加坡 |
 | `✨ OpenAI/AI` | ChatGPT、OpenAI API、Codex 与一方资源 | 美国、台湾、日本、新加坡 |
 | `🔷 Google/Gemini/Antigravity` | Google 登录和全家桶、Gemini、Antigravity、YouTube | 美国、台湾、日本、新加坡 |
-| `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Mistral、Poe、Cohere、OpenRouter 等境外 AI | 美国、台湾、日本、新加坡、欧洲 |
+| `🤖 其他 AI 服务` | Perplexity、Cursor、Hugging Face、xAI/Grok、Kiro、Typesafe、Mistral、Poe、Cohere、OpenRouter 等境外 AI | 美国、台湾、日本、新加坡、欧洲 |
 | `🎮 Steam` | Steam 商店、社区及相关服务 | 自动代理、直连及现有地区组 |
 
-Steam 使用独立的 `🎮 Steam` 策略组，默认自动代理，可以单独选择地区或直连。两端使用相同的显式域名表：商店、社区、客户端连接（包括 `cm.steampowered.com`）、云存档和用户内容走独立组；`steamcontent.com` 下载 CDN 及列出的中国服务优先直连，不受该组选择影响。其他海外下载域名仍走独立组，不保证所有下载都直连。规则不包含 Humble Bundle、Fanatical、SteamUnlocked 等第三方站点，也不使用宽泛关键词匹配。Steam 规则位于国内及境外通用规则之前；新增域名需要更新配置。
-
 Clash/Mihomo 使用维护中的 `GEOSITE,category-ai-!cn` 自动补充新出现的境外 AI 域名，三大独立组的规则排在它前面，因此不会被统一组抢走。Shadowrocket 不支持同等的 GeoSite 分类，配置中改用一方域名和明确专属端点，避免旧规则集把整站 Sentry、Intercom、Stripe、Auth0 等共享服务错误绑定到某个 AI 出口。国内 AI 不进入该统一组，仍按国内直连规则处理。
+
+<a id="steam-routing"></a>
+
+### Steam 独立分流
+
+Steam 使用独立的 `🎮 Steam` 策略组，默认自动代理，可以单独选择地区或直连。Clash/Mihomo 与 Shadowrocket 使用相同的 52 条显式域名规则，直连规则先于 Steam 代理规则，整个区块位于国内及境外通用规则之前。
+
+| 请求范围 | 示例 | 策略 |
+|---|---|---|
+| 商店、社区、客户端连接 | `store.steampowered.com`、`steamcommunity.com`、`cm.steampowered.com` | `🎮 Steam` |
+| 静态资源、云存档、用户内容 | `steamstatic.com`、`steamusercontent.com`、专属云存档端点 | `🎮 Steam` |
+| 明确的下载 CDN、中国服务 | `steamcontent.com`、`steamchina.com`、列出的国内下载端点 | `DIRECT`，不受 Steam 组选择影响 |
+| 第三方网站 | Humble Bundle、Fanatical、SteamUnlocked | 不在 Steam 专用规则内，遵循通用分流 |
+
+其他海外下载域名仍可能走 Steam 组，不保证所有下载都直连。规则不使用宽泛关键词，也不依赖两套范围不同的 Steam 远程规则集；新增域名需要更新配置。选定 Steam 策略后，从连接日志确认商店/社区命中 `🎮 Steam`、下载端点命中 `DIRECT`。规则表与匹配顺序已有本地测试，实际客户端的下载速度和界面显示仍需设备验收。
 
 <a id="domestic-direct"></a>
 
@@ -89,7 +107,7 @@ Freeroad 的默认模式是“国内外划分”：局域网、私网、中国�
 - Shadowrocket 使用 `China_Domain.list`、`China.list` 与 `GEOIP,CN,DIRECT`。
 - 局域网和 RFC1918 私网地址始终优先直连；回环、CGNAT（`100.64.0.0/10`）、IPv4/IPv6 链路本地地址及 IPv6 ULA 也不进入代理。`198.18.0.0/15` 保留给 Clash fake-IP 映射，不能加入直连名单。
 
-规则优先级保持为：AI 专用规则 → 广告拦截 → 国内直连白名单 → 默认境外代理。也就是说，Claude、OpenAI、Google/Gemini/Antigravity 等服务不会被“国内直连”误覆盖；对未命中中国域名/IP 列表的海外 CDN、境外站点和未知流量，默认仍走 `🎯 国外代理`。这与“让全部未知网站直连”的黑名单模式不同。
+规则优先级保持为：AI 专用规则 → 广告拦截 → Steam 等服务专用规则 → 国内直连白名单 → 默认境外代理。也就是说，Claude、OpenAI、Google/Gemini/Antigravity 等服务不会被“国内直连”误覆盖；对未命中中国域名/IP 列表的海外 CDN、境外站点和未知流量，默认仍走 `🎯 国外代理`。这与“让全部未知网站直连”的黑名单模式不同。
 
 Shadowrocket 的 `🎯 国外代理` 默认使用 `♻️ 国外自动`，也可以手动进入美国、台湾、香港、日本、新加坡、韩国、欧洲或 `🌐 其他国家节点`。其他国家组会排除中国、回国、套餐提示和已单独分类的国家，并提供自动测速与具体节点选择。
 
@@ -226,6 +244,7 @@ Google 官方明确要求 Google AI Studio 和 Gemini API 只能从[支持的国
 | FlClash | [`clash-goblal-extend-script.js`](./clash-goblal-extend-script.js) | 订阅配置的脚本覆写 |
 | Shadowrocket | [`shadowrocket-global.conf`](./shadowrocket-global.conf) | 完整配置文件 |
 | Clash Meta for Android | Clash/Mihomo YAML | 需要含节点或 `proxy-providers` 的完整 YAML，不能直接导入本仓库的 JS/CONF |
+| ROS／爱快 + Mihomo 旁路由 | 脚本生成的完整 Clash/Mihomo YAML | JS 由宿主生成配置后交给 Mihomo；不是 ROS／爱快原生配置 |
 
 公共 Raw 地址：
 
@@ -259,6 +278,7 @@ Provider 节点由 Mihomo 在订阅更新后按名称动态筛选到地区组，
    - `✨ OpenAI/AI`
    - `🔷 Google/Gemini/Antigravity`
    - `🤖 其他 AI 服务`
+   - `🎮 Steam`
 7. 进入每个 AI 组选择国家，再在国家组内选择自动测速或具体节点；Claude、OpenAI 也可以直接选择其国家组后方的具体节点。保持 Rule 模式。
 
 ### 更新脚本
@@ -288,7 +308,7 @@ Clash Verge Rev 的全局扩展脚本是本地编辑项。仓库脚本更新后�
 
 7. 保存为 `Freeroad Global`。
 8. 返回当前订阅的覆写页面，选中该脚本。
-9. 点击“预览”，确认四个 AI 策略组和规则已经生成。
+9. 点击“预览”，确认四个 AI 策略组、`🎮 Steam` 和对应规则已经生成。
 10. 应用配置并重启 VPN。
 
 ### 更新脚本
@@ -316,8 +336,21 @@ Shadowrocket 使用自己的 `.conf` 格式，不能导入 Clash JavaScript。
 
 5. 下载后选中该配置，并点击“使用配置”。
 6. 将“全局路由”设置为“配置”。
-7. 打开代理分组，分别为四个 AI 服务选择国家，再进入国家组选择自动测速或固定具体节点；Claude、OpenAI 也提供具体节点快捷入口。
+7. 打开代理分组，分别为四个 AI 服务选择国家，再进入国家组选择自动测速或固定具体节点；也可直接选择应用组内的地区自动选项。Claude、OpenAI 另提供具体节点快捷入口。
 8. 普通国外流量默认保持 `🎯 国外代理 → ♻️ 国外自动`；需要指定国家时，可进入 `🎯 国外代理` 选择国家组或 `🌐 其他国家节点`。
+9. 在 `🎮 Steam` 中独立选择自动代理、地区或直连；下载和中国服务的直连规则仍优先生效。
+
+### 应用组中的地区自动快捷选项
+
+| 应用组 | 配置中直接引用的自动组 |
+|---|---|
+| `🧠 Claude`、`✨ OpenAI/AI`、`🔷 Google/Gemini/Antigravity` | 美国、台湾、日本、新加坡自动 |
+| `🤖 其他 AI 服务` | 美国、台湾、日本、新加坡、欧洲自动 |
+| `🎮 Steam` | 美国、台湾、日本、新加坡、香港、韩国、欧洲、其他国家自动；另保留国外自动 |
+
+例如 `🧠 Claude → ♻️ 台湾自动` 可以直接选择台湾测速组；`🧠 Claude → 🌏 台湾节点 → 具体节点` 用于固定出口。国家组仍排在应用组的快捷选项之前，默认选择未改变。香港、韩国也采用“地区选择组 + 自动测速组”，支持自动或手动固定节点。
+
+当前自动组配置为每 600 秒测试一次，超时 5 秒，切换容差 50 毫秒。测速地址是 `http://www.gstatic.com/generate_204`，结果反映该测试地址的连接情况，不代表 Claude、Steam 或其他应用一定可用。自动组选中的节点会被所有引用该自动组的应用共享；需要不同固定出口时，请分别选择具体节点。
 
 ### 本地文件导入
 
@@ -382,7 +415,7 @@ Johnshall 文件是一份完整配置，不是可直接叠加到 `shadowrocket-g
 
 ### 更新配置
 
-在“配置”页面对当前配置执行更新或重新下载。配置中的 `update-url` 已指向本仓库 Raw 地址。更新后需要重新选择“使用配置”并断开重连；自定义 Hosts 应保存在独立本地模块中。
+在“配置”页面对当前配置执行“更新配置”或重新下载。配置中的 `update-url` 已指向本仓库 Raw 地址。更新后重新选择“使用配置”并断开重连。首页“更新订阅”只更新节点；“使用配置/编译配置”更新远程规则资源，不能代替主配置的下载更新。更新配置会覆盖主文件中的本地修改，自定义 Hosts 应保存在独立本地模块中。[操作说明](https://lowertop.github.io/Shadowrocket/#更新配置)
 
 参考：[Shadowrocket 使用手册](https://github.com/LOWERTOP/Shadowrocket/wiki/)。
 
@@ -443,11 +476,32 @@ clashmeta://install-config?url=<URL 编码后的完整 YAML 地址>
 
 参考：[Clash Meta for Android 官方仓库](https://github.com/MetaCubeX/ClashMetaForAndroid)。
 
+<a id="soft-router"></a>
+
+## 软路由：RouterOS（ROS）与爱快（iKuai）
+
+Freeroad 的分流策略可用于运行 Mihomo 的 OpenWrt／Linux 软路由。ROS（MikroTik RouterOS）或爱快作为主路由时，推荐将指定设备的流量与 DNS 接入 Mihomo 旁路由；爱快支持虚拟机的设备也可在虚拟机内运行旁路由系统。
+
+使用的是执行 `clash-goblal-extend-script.js` 后生成的完整 YAML，不是直接把 JS 或 Shadowrocket CONF 导入主路由。当前脚本 DNS 监听 1053，部署时还需提供客户端可用的 53 端口入口，并配套配置转发、回程、IPv6 和透明代理接管。
+
+详见 [软路由接入说明](./docs/soft-router.md)，包含完整配置准备、ROS 策略路由与 FastTrack 注意事项、爱快外置／虚拟机接入、fake-IP 路径、单设备验收及更新步骤。本文描述可行接入方式，尚未完成 ROS／爱快实机验收。
+
 <a id="faq"></a>
 
 ## 第十章：常见问题
 
+### Shadowrocket 的 Claude 组看不到国家自动
+
+仓库配置已引用美、台、日、新四个自动组，但配置文本检查不等于设备界面验证。已有“Claude 内看不到国家自动”的反馈，原因尚未确认，不能直接认定为正则过滤或客户端不支持。
+
+1. 在“配置”页确认当前启用的是 `shadowrocket-global.conf`，而非其他配置或旧副本。
+2. 对该文件执行“更新配置”，再“使用配置”，断开并重连。
+3. 用“编辑纯文本”查看 `[Proxy Group]` 中的 `🧠 Claude =` 行，确认包含 `♻️ 美国自动`、`♻️ 台湾自动`、`♻️ 日本自动`、`♻️ 新加坡自动`。
+4. 若文件已有这些选项但界面仍未显示，记录 Shadowrocket 版本、Claude 分组截图和相关组定义，继续排查加载与解析行为；分享时去掉节点凭据、订阅地址等私密内容。
+
 ### AI 策略组为空
+
+国家中文名、英文全名及 `USA` 按名称包含匹配，前后可以有线路名或编号，例如 `线路01美国`、`线路01USA`。`美国高倍01 3x 流量`、`台湾高倍家宽02 3x 流量` 等真实节点不会仅因含有“流量”被排除；“剩余流量”“套餐到期”等提示项仍会过滤。`US` 等短代码保留边界限制，以免把 Russia 等名称误分入美国。
 
 订阅中没有名称可识别的美国、台湾、日本或新加坡节点。节点名应包含相应旗帜、国家代码或国家名称；例如 `US`/`USA`、`TW`/`TWN`、`JP`、`SG`、`美国`、`台湾`、`日本`、`新加坡`。只有欧洲节点时，前三个 AI 策略组仍无法创建。
 
@@ -477,6 +531,9 @@ clashmeta://install-config?url=<URL 编码后的完整 YAML 地址>
 ```bash
 node --check clash-goblal-extend-script.js
 node work/test-script-regressions.js
+node work/test-script-providers.js
+node work/test-region-names.js
+node work/test-steam-routing.js
 node work/test-public-sanitization.js
 node work/test-shadowrocket-config.js
 node work/test-shadowrocket-internal-hosts-template.js
