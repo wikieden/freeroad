@@ -264,6 +264,25 @@ https://raw.githubusercontent.com/wikieden/freeroad/main/shadowrocket-global.con
 Provider 节点由 Mihomo 在订阅更新后按名称动态筛选到地区组，套餐提示节点会排除；HTTP provider 应配置自己的 `health-check`。因为脚本无法预先读取远程节点，provider 模式会显示全部地区组，空地区组使用 `REJECT`，不会回落直连。Claude/OpenAI 同时展示国家组和美、台、日、新的具体节点，支持各自直接固定一个 provider 或内嵌节点。仅有内嵌节点时继续只显示存在的地区。
 
 
+### 用全局扩展保留私有节点和家宅链路
+
+需要将手工节点、多个订阅和家宅链路统一保存在全局设置时，使用以下一对文件，替代普通全局脚本的导入方式：
+
+| 放置位置 | 文件 | 用途 |
+|---|---|---|
+| 全局扩展配置 | [`templates/clash-global-private.example.yaml`](./templates/clash-global-private.example.yaml) 的本地填写副本 | 保存订阅 URL、手工节点和链式派生关系 |
+| 全局扩展脚本 | [`clash-global-residential-extend-script.js`](./clash-global-residential-extend-script.js) | 已包含公开分流和家宅扩展，可完整复制，无需手工拼接函数 |
+
+先备份现有全局配置与脚本，再填写 YAML 占位值，将两份内容分别粘贴到对应编辑器，保存并重新应用当前配置。YAML 不要重复定义顶层键，也不要加入 `rules` 或 `proxy-groups` 覆盖通用分流；已有私有 DNS 设置应合并保留。示例 URL 不能直接使用，HTTP provider 首次加载仍需网络可达。
+
+原始节点沿用客户端名称，可在对应国家组直接选择；`｜链式` 副本通过 `🏠 家宅出口` 选择，路径为“本机 → 🛫 出国前置 → 落地节点 → 目标网站”。原始节点不经过该前置，但仍是代理出口，不是目标网站 `DIRECT`。VPS 订阅使用两份 provider：原始名称版供国家组选择，链式版通过 `override` 添加前置和名称后缀；两者使用不同缓存路径，可能各自发起更新请求。手工节点的原始条目与链式副本应同步修改账号和地址。
+
+`private-residential-*` 和兼容的 `private-ipipgo-chain` 只进入家宅组；`private-fixed-ip`、`private-vps-direct` 原始节点进入国家选择组，但不参与自动组或出国前置。机场 provider 不要使用 `private-` 前缀。四个 AI 应用组保留原有选项和默认选择，增加家宅出口而不自动切换；需要串联时先选前置，再选落地，最后让应用组选择家宅出口。若当前订阅已内嵌同一批节点，列表可能重复，可改用简单本地配置承载全局层。
+
+此扩展已在本地 Mihomo v1.19.32 进行隔离加载检查；客户端保存、应用和实际服务访问仍需验证。完整私有 YAML、节点凭据及客户端完整导出不能上传公开 GitHub；可放在本人受保护的 iCloud／OneDrive 同步目录，复制到目录不等于已确认云端同步完成。公开脚本更新后需要更新这份家宅合并脚本；仅覆盖为普通脚本会移除家宅分组。
+
+维护生成文件时执行 `node scripts/build-residential-script.cjs`，再运行 `node work/test-residential-global.js`。公开模板不包含真实节点或订阅。
+
 验证基线：[Clash Verge Rev v2.5.2](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/v2.5.2)。官方扩展机制支持通过 `main(config, profileName)` 修改订阅生成的配置。
 
 ### 导入步骤
@@ -533,6 +552,7 @@ node --check clash-goblal-extend-script.js
 node work/test-script-regressions.js
 node work/test-script-providers.js
 node work/test-region-names.js
+node work/test-residential-global.js
 node work/test-steam-routing.js
 node work/test-public-sanitization.js
 node work/test-shadowrocket-config.js

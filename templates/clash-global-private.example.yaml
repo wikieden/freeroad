@@ -1,0 +1,63 @@
+# EXAMPLE ONLY. Replace placeholders locally; never publish your filled copy.
+# Paste into Global Extension Configuration, together with the residential script.
+# No rules or proxy-groups here: the script owns routing and group construction.
+proxy-providers:
+  airport-a:
+    type: http
+    url: "https://subscription.example.net/airport-a.yaml"
+    path: ./providers/freeroad-airport-a.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600
+  airport-b:
+    type: http
+    url: "https://subscription.example.net/airport-b.yaml"
+    path: ./providers/freeroad-airport-b.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600
+
+  # Original node: selectable in its country group, without the transit group.
+  private-fixed-ip:
+    type: inline
+    payload:
+      - name: 美国01-手工
+        type: socks5
+        server: proxy.example.net
+        port: 1080
+        username: REPLACE_LOCALLY
+        password: REPLACE_LOCALLY
+        udp: false
+
+  # Chained copy: independent name, so direct and chained paths never collide.
+  private-residential-manual:
+    type: inline
+    payload:
+      - name: 美国01-手工｜链式
+        type: socks5
+        server: proxy.example.net
+        port: 1080
+        username: REPLACE_LOCALLY
+        password: REPLACE_LOCALLY
+        udp: false
+        dialer-proxy: 🛫 出国前置
+
+  # Optional VPS subscription, with original node names unchanged.
+  # Remove both VPS provider blocks if no such subscription is needed.
+  private-vps-direct:
+    type: http
+    url: "https://vps.example.net/subscription?format=clash"
+    path: ./providers/freeroad-vps-direct.yaml
+    interval: 3600
+  private-residential-vps:
+    type: http
+    url: "https://vps.example.net/subscription?format=clash"
+    path: ./providers/freeroad-vps-chain.yaml
+    interval: 3600
+    override:
+      dialer-proxy: 🛫 出国前置
+      additional-suffix: ｜链式
