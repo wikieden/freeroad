@@ -336,6 +336,28 @@ Clash Verge Rev 的全局扩展脚本是本地编辑项。仓库脚本更新后�
 
 实现依据：[FlClash JavaScript 执行入口](https://github.com/chen08209/FlClash/blob/main/lib/common/javascript.dart)、[脚本管理界面](https://github.com/chen08209/FlClash/blob/main/lib/views/config/scripts.dart)。
 
+### 私有完整 YAML 导入（实验方案）
+
+Clash Verge 的 `global-extension.yaml` 是合并片段，不能单独当作完整分流配置启用。需要把私有 YAML 交给配套的 `clash-global-residential-extend-script.js` 执行 `main(config)`，将返回的完整对象导出为 YAML，才会同时包含订阅、策略组和规则。导出过程应在本地完成，不要把私有内容发送到在线转换网站。
+
+完整文件可通过 FlClash“配置”→“添加”→“文件”导入，无需另外导入同一份 JavaScript；不要再叠加会重建分组的旧脚本。机场节点仍由 `proxy-providers` 更新；分组和规则是生成时的快照，公开脚本更新后需要重新生成、导入。
+
+住宅链式入口应在四个 AI 分组中显示为 `🏠 家宅出口`，其中列出名称带 `｜链式` 的节点；`🛫 出国前置` 只选择独立机场节点。完整 YAML 与全局扩展片段必须区分，不要互相覆盖。
+
+**验证边界：** 本地合并文件已通过 Mihomo 配置校验，但 FlClash 导入后存在住宅链式节点未显示的反馈，客户端兼容性尚未验收。遇到缺失时，应检查实际生效配置是否保留 `proxy-providers`、`🏠 家宅出口` 的 `use`、provider 加载状态及额外覆写；不能仅凭 YAML 校验通过就认定客户端可用。
+
+完整私有文件含账号与订阅令牌，仅放在本地或私人 iCloud/OneDrive；公开仓库只保留通用脚本、占位模板及说明。
+
+### 节点测速口径与最近汇总
+
+2026-10-19（America/Los_Angeles）隔离复测覆盖 180 个缓存订阅节点。每节点做 5 次 HTTPS 探测；有响应的 163 个节点再串行下载两次、每次 1 MB。共 900 次探测，743 次成功；119 个节点探测 5/5 成功，48 个节点同时满足探测 5/5、下载 2/2 成功。下载共 326 次，133 次完整成功，部分节点出现连续超时。逐节点结果、真实参数及原始日志不公开。
+
+- 延迟是 HTTPS 首字节耗时，不是 ICMP RTT；吞吐是短文件端到端有效速率，不是线路峰值带宽。
+- 请求失败率不等于包级丢包率；未进行真实包级丢包测试，也未测试 ChatGPT/Claude 登录后对话。
+- 本轮订阅刷新超时，使用本地缓存；短时测试不能证明长期稳定，也不代表订阅服务器的实时最新清单。
+- 当前系统 VPN 未关闭。初轮发现系统将代理服务器域名解析为 fake-IP，已废弃该轮；隔离内核改用国内 IP 地址形式的 DoH，小样本验证通过后重新全量测试。隔离内核仍可能受到系统底层路径影响，不等同于 Shadowrocket/FlClash 原生验收。
+- 结果仅描述该时段和测试目标的表现，不能直接据此认定节点永久失效、住宅 IP 属性或 AI 账号可用性。
+
 <a id="shadowrocket"></a>
 
 ## 第八章：Shadowrocket
