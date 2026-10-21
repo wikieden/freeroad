@@ -27,13 +27,16 @@ const output = ctx.main(structuredClone(input), 'residential');
 const group = name => output['proxy-groups'].find(g => g.name === name);
 const homeProviders = ['private-residential-manual', 'private-residential-vps'];
 assert.deepEqual(Array.from(group('🏠 家宅出口').use), homeProviders);
-for (const name of ['🛫 出国前置', '♻️ 出国前置自动']) {
-  assert.deepEqual(Array.from(group(name).use), ['airport']);
-  assert(!group(name).proxies.includes('美国01-手工'));
-  assert.equal(group(name)['empty-fallback'], 'REJECT');
+assert.deepEqual(Array.from(group('🛫 出国前置').use), Object.keys(providers));
+assert.deepEqual(Array.from(group('♻️ 出国前置自动').use), ['airport']);
+for (const g of output['proxy-groups'].filter(g => g.type === 'url-test')) {
+  assert(group('🛫 出国前置').proxies.includes(g.name), `Missing automatic choice: ${g.name}`);
 }
+assert(!/住宅|IPIPGO|lychee|sunflare/i.test(group('🛫 出国前置')['exclude-filter']));
+assert.equal(group('🛫 出国前置').proxies[0], '♻️ 出国前置自动');
+assert.equal(group('🛫 出国前置')['empty-fallback'], 'REJECT');
 for (const g of output['proxy-groups']) {
-  if (g.name !== '🏠 家宅出口') assert(!(g.use || []).some(key => homeProviders.includes(key)));
+  if (!['🏠 家宅出口', '🛫 出国前置'].includes(g.name)) assert(!(g.use || []).some(key => homeProviders.includes(key)));
   if (g.type === 'url-test') assert(!(g.use || []).some(key => key.startsWith('private-')));
 }
 assert(group('🇺🇸 美国节点').use.includes('private-fixed-ip'));
@@ -45,6 +48,14 @@ for (const name of ['🧠 Claude', '✨ OpenAI/AI', '🔷 Google/Gemini/Antigrav
 }
 const rerun = ctx.main(structuredClone(output), 'repeat');
 assert.equal(rerun['proxy-groups'].filter(g => g.name === '🏠 家宅出口').length, 1);
+assert.equal(new Set(group('🛫 出国前置').proxies).size, group('🛫 出国前置').proxies.length);
+const inline = ctx.main({ ...structuredClone(input), proxies: input.proxies.concat([
+  {name:'美国-Sunflare-原始',type:'socks5'},
+  {name:'美国-Sunflare｜链式',type:'socks5','dialer-proxy':'🛫 出国前置'}
+]) }, 'inline-residential');
+const inlineFront = inline['proxy-groups'].find(g=>g.name==='🛫 出国前置');
+assert(inlineFront.proxies.includes('美国-Sunflare-原始'));
+assert(inlineFront.proxies.includes('美国-Sunflare｜链式'));
 assert.throws(() => ctx.main({ 'proxy-providers': { 'private-residential-manual': providers['private-residential-manual'] } }, 'no-transit'));
 const plain = ctx.main({ proxies: [{ name: '美国-普通', type: 'ss' }] }, 'no-residential');
 assert(!plain['proxy-groups'].some(g => g.name === '🏠 家宅出口'));
@@ -52,4 +63,4 @@ const template = fs.readFileSync(path.join(root, 'templates/clash-global-private
 assert(!/^rules:|^proxy-groups:/m.test(template));
 assert(template.includes('REPLACE_LOCALLY'));
 assert(template.includes('additional-suffix: ｜链式'));
-console.log('PASS: residential groups, US direct choices, automatic/transit exclusion, defaults, repeated execution and generated file');
+console.log('PASS: residential groups, US choices, automatic exclusion, unrestricted manual transit, defaults and generated file');

@@ -19,8 +19,19 @@ function main(config, name) {
   }
   const exclude = '(?i)固定[ _-]*IP|家宅|住宅|IPIPGO|lychee|sunflare|(?:vless|tuic)(?:[｜-]+链式)?$|支持[ _-]*AI[ :：]|剩余|到期|过期|套餐|官网|公告|客服|回国|中国';
   const auto = {name:frontAuto,type:'url-test',proxies:transit.slice(),url:'https://www.gstatic.com/generate_204',interval:600,tolerance:50};
-  const select = {name:front,type:'select',proxies:[frontAuto].concat(transit)};
-  if (ordinaryProviders.length) for (const g of [auto, select]) Object.assign(g,{use:ordinaryProviders.slice(),'exclude-filter':exclude,'empty-fallback':'REJECT'});
+  if (ordinaryProviders.length) Object.assign(auto,{use:ordinaryProviders.slice(),'exclude-filter':exclude,'empty-fallback':'REJECT'});
+  // The manual selector intentionally exposes every automatic group and provider,
+  // including residential chained copies. The user owns loop avoidance here.
+  // Keep the existing default and the automatic transit pool unchanged.
+  const allAutomatic = output['proxy-groups'].filter(g => g.type === 'url-test').map(g => g.name);
+  const inlineChoices = (output.proxies || []).map(p => p.name).filter(Boolean);
+  const select = {
+    name:front,type:'select',
+    proxies:Array.from(new Set([frontAuto].concat(allAutomatic,inlineChoices))),
+    use:Object.keys(originalProviders),
+    'exclude-filter':'(?i)支持[ _-]*AI[ :：]|流量(?:剩余|不足|耗尽|重置|用尽)|重置|过期|到期|套餐|官网|公告|剩余|续费|购买|客服',
+    'empty-fallback':'REJECT'
+  };
   output['proxy-groups'].push(auto,select,{name:home,type:'select',proxies:[],use:homeProviders,'empty-fallback':'REJECT'});
   for (const app of ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity','🤖 其他 AI 服务']) {
     const g = output['proxy-groups'].find(g => g.name === app);
