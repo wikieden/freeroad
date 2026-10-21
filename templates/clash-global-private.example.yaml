@@ -4,6 +4,8 @@
 proxy-providers:
   airport-a:
     type: http
+    header:
+      User-Agent: [clash.meta]
     url: "https://subscription.example.net/airport-a.yaml"
     path: ./providers/freeroad-airport-a.yaml
     interval: 3600
@@ -13,6 +15,8 @@ proxy-providers:
       interval: 600
   airport-b:
     type: http
+    header:
+      User-Agent: [clash.meta]
     url: "https://subscription.example.net/airport-b.yaml"
     path: ./providers/freeroad-airport-b.yaml
     interval: 3600
@@ -50,11 +54,15 @@ proxy-providers:
   # Remove both VPS provider blocks if no such subscription is needed.
   private-vps-direct:
     type: http
+    header:
+      User-Agent: [clash.meta]
     url: "https://vps.example.net/subscription?format=clash"
     path: ./providers/freeroad-vps-direct.yaml
     interval: 3600
   private-residential-vps:
     type: http
+    header:
+      User-Agent: [clash.meta]
     url: "https://vps.example.net/subscription?format=clash"
     path: ./providers/freeroad-vps-chain.yaml
     interval: 3600

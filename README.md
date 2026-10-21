@@ -352,6 +352,8 @@ Clash Verge 的 `global-extension.yaml` 是合并片段，不能单独当作完�
 
 #### 私有配置：维护差异，统一生成
 
+HTTP 节点 provider 默认补充 `User-Agent: clash.meta`，避免部分订阅返回 Base64 通用链接列表或拒绝非 Clash 请求；已有自定义 User-Agent 保留。国家分组仍按节点名字匹配，`2X/3x/10x` 等倍率不作为排除条件。节点整批缺失时应先检查 provider 下载和响应格式，再检查国家筛选；本地规则测试不代表设备已恢复。
+
 FlClash 也可使用两文件方案：私有本地 `freeroad-local.yaml` 保存订阅、节点和 DNS，配套 `freeroad-extension.js` 使用本仓库的 `clash-global-residential-extend-script.js`，统一生成分组和分流规则。在 FlClash 导入本地 YAML 后，须在该配置的脚本覆写中绑定配套 JS；不能将它当作 Clash Verge 的全局扩展配置直接粘贴。为避免漏绑脚本后误用，两文件私有包的本地 YAML 只提供最小前置组与 `MATCH,REJECT`；脚本应用后重建完整分组与规则。拆分包已完成本地内核校验及与完整包的配置等价检查，尚未代表 FlClash 设备导入验收。
 
 [`scripts/build-private-config.cjs`](./scripts/build-private-config.cjs) 将公开配置作为通用规则的唯一来源；私有源目录只保存 `clash-private.yaml`（节点、订阅和 DNS）与 `shadowrocket-private.json`（节点、设置和分组差异，以及必要的规则增删）。私有源与生成包都必须放在已忽略的 `local-subscriptions/` 内，不提交 GitHub。

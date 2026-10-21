@@ -107,6 +107,17 @@ function main(config, name) {
   const tipPattern = "支持[ _-]*AI[ :：]|流量(?:剩余|不足|耗尽|重置|用尽)|重置|过期|到期|套餐|官网|发布|公告|网站|网址|不懂|剩余|续费|购买|客服";
   const isTip = (n) => new RegExp(tipPattern, "i").test(n);
   const providerNames = Object.keys(config["proxy-providers"] || {});
+  // Some subscriptions negotiate output by User-Agent. Without an explicit
+  // Clash request they may return Base64 links (or reject the request), making
+  // entire node batches disappear before country-name matching can run.
+  providerNames.forEach(key => {
+    const provider = config["proxy-providers"][key];
+    if (!provider || provider.type !== "http") return;
+    const headers = provider.header || {};
+    if (!Object.keys(headers).some(name => name.toLowerCase() === "user-agent")) {
+      provider.header = Object.assign({}, headers, { "User-Agent": ["clash.meta"] });
+    }
+  });
   const hasProviders = providerNames.length > 0;
   // 脚本运行时看不到 HTTP provider 内容，由内核在下载/更新后动态筛选。
   const withProviders = (group, filter, excluded) => {
