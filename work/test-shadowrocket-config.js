@@ -97,7 +97,7 @@ assert.match(foreignGroupLine, /=\s*select,/);
 assert.deepEqual(
   foreignGroupLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
   [
-    "♻️ 国外自动", "🇺🇸 美国节点", "🌏 台湾节点", "🇭🇰 香港节点", "🇯🇵 日本节点",
+    "♻️ 国外自动", "DIRECT", "🇺🇸 美国节点", "🌏 台湾节点", "🇭🇰 香港节点", "🇯🇵 日本节点",
     "🇸🇬 新加坡节点", "🇰🇷 韩国节点", "🇪🇺 欧洲节点", "🌐 其他国家节点"
   ]
 );

@@ -246,6 +246,18 @@ function freeroadBaseMain(config, name) {
   config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, mainGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
+  // Maintained Proxy aggregate. Its domains and IP ranges supplement existing
+  // service rules; the rule below retains domestic-direct priority.
+  config["rule-providers"] = Object.assign({}, config["rule-providers"] || {}, {
+    "freeroad-proxy": {
+      type: "http",
+      behavior: "classical",
+      format: "yaml",
+      url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Proxy/Proxy_Classical.yaml",
+      path: "./ruleset/freeroad-proxy.yaml",
+      interval: 86400
+    }
+  });
   config["rules"] = [
     // ========== Claude / Anthropic 全量分流（优先级最高，避免漏配触发风控）==========
     // 核心主域名
@@ -440,6 +452,7 @@ function freeroadBaseMain(config, name) {
     "GEOSITE,geolocation-!cn,🎯 全局分流",
     "GEOSITE,cn,DIRECT",
     "GEOIP,cn,DIRECT",
+    "RULE-SET,freeroad-proxy,🎯 全局分流",
     "MATCH,🎯 全局分流"
   ];
 
