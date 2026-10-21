@@ -1,4 +1,5 @@
-// Optional residential overlay. Credentials and subscriptions belong in local global YAML.
+// Optional fixed VPS egress overlay. Legacy provider keys remain compatible.
+// Group labels do not establish residential IP status. Keep credentials private.
 function main(config, name) {
   const homeProvider = key => /^private-(?:residential(?:-|$)|ipipgo-chain$)/.test(key);
   const originalProviders = config['proxy-providers'] || {};
@@ -6,7 +7,7 @@ function main(config, name) {
   const ordinaryProviders = Object.keys(originalProviders).filter(key => !/^private-/.test(key));
   const output = freeroadBaseMain(config, name);
   if (!homeProviders.length) return output;
-  const front = '🛫 出国前置', frontAuto = '♻️ 出国前置自动', home = '🏠 家宅出口';
+  const front = '🛫 出国前置', frontAuto = '♻️ 出国前置自动', home = '🖥️ 美国 VPS 出口';
   const residential = /固定[ _-]*IP|家宅|住宅|IPIPGO|lychee|sunflare|(?:vless|tuic)(?:[｜-]+链式)?$/i;
   const blockedInline = new Set((output.proxies || []).filter(p => p['dialer-proxy'] || residential.test(p.name)).map(p => p.name));
   const validInline = new Set((output.proxies || []).filter(p => !blockedInline.has(p.name)).map(p => p.name));
