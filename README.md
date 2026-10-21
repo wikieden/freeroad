@@ -350,6 +350,32 @@ Clash Verge 的 `global-extension.yaml` 是合并片段，不能单独当作完�
 
 完整私有文件含账号与订阅令牌，仅放在本地或私人 iCloud/OneDrive；公开仓库只保留通用脚本、占位模板及说明。
 
+#### 私有配置：维护差异，统一生成
+
+FlClash 也可使用两文件方案：私有本地 `freeroad-local.yaml` 保存订阅、节点和 DNS，配套 `freeroad-extension.js` 使用本仓库的 `clash-global-residential-extend-script.js`，统一生成分组和分流规则。在 FlClash 导入本地 YAML 后，须在该配置的脚本覆写中绑定配套 JS；不能将它当作 Clash Verge 的全局扩展配置直接粘贴。为避免漏绑脚本后误用，两文件私有包的本地 YAML 只提供最小前置组与 `MATCH,REJECT`；脚本应用后重建完整分组与规则。拆分包已完成本地内核校验及与完整包的配置等价检查，尚未代表 FlClash 设备导入验收。
+
+[`scripts/build-private-config.cjs`](./scripts/build-private-config.cjs) 将公开配置作为通用规则的唯一来源；私有源目录只保存 `clash-private.yaml`（节点、订阅和 DNS）与 `shadowrocket-private.json`（节点、设置和分组差异，以及必要的规则增删）。私有源与生成包都必须放在已忽略的 `local-subscriptions/` 内，不提交 GitHub。
+
+首次迁移一个已有私有包（包含 `global-extension.yaml` 和 `freeroad-shadowrocket-us-vps.conf`）：
+
+```sh
+node scripts/build-private-config.cjs init local-subscriptions/OLD_PACKAGE local-subscriptions/private-source
+```
+
+以后修改公开规则或私有源后，只需重新生成一个新版本；工具拒绝覆盖已有目录：
+
+```sh
+node scripts/build-residential-script.cjs
+node scripts/build-private-config.cjs build local-subscriptions/private-source local-subscriptions/private-generated-NEW_VERSION
+```
+
+- Clash：使用生成包中的 `global-extension.yaml` 和 `global-extension.js`，私有 YAML 不保存 `rules` 或 `proxy-groups`。
+- FlClash：使用生成的 `freeroad-flclash.yaml`；完整 YAML 是编译产物，不再手工维护重复规则。
+- Shadowrocket：使用生成的 `freeroad-shadowrocket-us-vps.conf`；公开规则自动进入新包，私有差异保留。生成包清空 `update-url`，防止客户端把含私人节点的配置替换为公开配置。
+- 私有分组覆写仍有优先权；若需要跟随公开分组变化，应检查对应的 `groups.set`。私人补充规则可在 `prependRules` / `removeRules` 维护，不要复制整个公开 `[Rule]`。
+
+`receipt.json` 记录公开源哈希、私有源哈希和产物哈希。这里的“自动”指生成时继承本地公开源，不是客户端自动下载并执行新脚本；规则集的远程名单更新仍使用原来的机制。生成工具不联网、不上传云盘、不切换客户端。更新云盘时应发布新版本并保留旧快照；导入后仍须检查 provider、分组选择与实际链路。
+
 ### 节点测速口径与最近汇总
 
 2026-10-19（America/Los_Angeles）隔离复测覆盖 180 个缓存订阅节点。每节点做 5 次 HTTPS 探测；有响应的 163 个节点再串行下载两次、每次 1 MB。共 900 次探测，743 次成功；119 个节点探测 5/5 成功，48 个节点同时满足探测 5/5、下载 2/2 成功。下载共 326 次，133 次完整成功，部分节点出现连续超时。逐节点结果、真实参数及原始日志不公开。
