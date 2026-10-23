@@ -7,20 +7,20 @@ const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(root, "clash-goblal-extend-script.js"), "utf8"), ctx);
 const fixtures = [
-  ["香港高倍01 3x 流量", "🇭🇰 香港节点", "香港"],
-  ["新加坡高倍01 3x 流量", "🇸🇬 新加坡节点", "新加坡"],
-  ["美国高倍01 3x 流量", "🇺🇸 美国节点", "美国"],
-  ["pro-家庭宽带-美国ATT01-2X", "🇺🇸 美国节点", "美国"],
-  ["pro-家庭宽带-美国Wave-10X", "🇺🇸 美国节点", "美国"],
-  ["pro-家庭宽带-日本Biglobe-2x", "🇯🇵 日本节点", "日本"],
-  ["直连-新加坡01-5x", "🇸🇬 新加坡节点", "新加坡"],
-  ["线路01-USA", "🇺🇸 美国节点", "美国"],
-  ["线路01USA", "🇺🇸 美国节点", "美国"],
-  ["USA01", "🇺🇸 美国节点", "美国"],
-  ["台湾高倍家宽02 3x 流量", "🌏 台湾节点", "台湾"],
-  ["线路01日本", "🇯🇵 日本节点", "日本"],
-  ["韩国高倍01 3x 流量", "🇰🇷 韩国节点", "韩国"],
-  ["德国高倍01 3x 流量", "🇪🇺 欧洲节点", "欧洲"]
+  ["香港高倍01 3x 流量", "🇭🇰 香港全部节点", "香港"],
+  ["新加坡高倍01 3x 流量", "🇸🇬 新加坡全部节点", "新加坡"],
+  ["美国高倍01 3x 流量", "🇺🇸 美国全部节点", "美国"],
+  ["pro-家庭宽带-美国ATT01-2X", "🇺🇸 美国全部节点", "美国"],
+  ["pro-家庭宽带-美国Wave-10X", "🇺🇸 美国全部节点", "美国"],
+  ["pro-家庭宽带-日本Biglobe-2x", "🇯🇵 日本全部节点", "日本"],
+  ["直连-新加坡01-5x", "🇸🇬 新加坡全部节点", "新加坡"],
+  ["线路01-USA", "🇺🇸 美国全部节点", "美国"],
+  ["线路01USA", "🇺🇸 美国全部节点", "美国"],
+  ["USA01", "🇺🇸 美国全部节点", "美国"],
+  ["台湾高倍家宽02 3x 流量", "🌏 台湾全部节点", "台湾"],
+  ["线路01日本", "🇯🇵 日本全部节点", "日本"],
+  ["韩国高倍01 3x 流量", "🇰🇷 韩国全部节点", "韩国"],
+  ["德国高倍01 3x 流量", "🇪🇺 欧洲全部节点", "欧洲"]
 ];
 const nodes = fixtures.map(([name]) => ({ name, type: "ss" }));
 nodes.push({ name: "美国-剩余流量 50 GB", type: "ss" });
@@ -38,7 +38,7 @@ for (const input of [{ proxies: nodes }, { "proxy-providers": { sample: { type: 
       assert.ok(!new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name), name);
     }
   }
-  const us = output["proxy-groups"].find(g => g.name === "🇺🇸 美国节点");
+  const us = output["proxy-groups"].find(g => g.name === "🇺🇸 美国全部节点");
   for (const group of output["proxy-groups"]) {
     for (const tip of tips) {
       assert.ok(!group.proxies.includes(tip), group.name + ": " + tip);
@@ -65,12 +65,12 @@ for (const [name, region, country] of fixtures) {
     for (const group of ["🧠 Claude", "✨ OpenAI/AI"]) assert.ok(matcher(group).test(name), group + ": " + name);
   }
 }
-assert.ok(!matcher("🇺🇸 美国节点").test("Russia-01"));
-assert.ok(!matcher("🇺🇸 美国节点").test("美国-剩余流量 50 GB"));
-assert.ok(!matcher("🌐 其他国家节点").test("线路01USA"));
-assert.ok(matcher("🌐 其他国家节点").test("加拿大高倍家宽 3x 流量"));
+assert.ok(!matcher("🇺🇸 美国全部节点").test("Russia-01"));
+assert.ok(!matcher("🇺🇸 美国全部节点").test("美国-剩余流量 50 GB"));
+assert.ok(!matcher("🌐 其他国家全部节点").test("线路01USA"));
+assert.ok(matcher("🌐 其他国家全部节点").test("加拿大高倍家宽 3x 流量"));
 for (const tip of tips) {
-  for (const group of ["🧠 Claude", "✨ OpenAI/AI", "🇺🇸 美国节点", "♻️ 美国自动", "🌐 其他国家节点", "♻️ 国外自动"]) {
+  for (const group of ["🧠 Claude", "✨ OpenAI/AI", "🇺🇸 美国全部节点", "♻️ 美国自动", "🌐 其他国家全部节点", "♻️ 国外自动"]) {
     assert.ok(!matcher(group).test(tip), group + ": " + tip);
   }
 }

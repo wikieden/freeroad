@@ -133,7 +133,7 @@ function main(config, name) {
   // US 等短码仍保留字母边界，避免 Russia→US、Fukuoka→UK 等子串误配。
   // 顺序即展示顺序：美国排最前，也是分类优先级（多匹配取第一个）。
   // auto:true = 该区做手自一体（默认自动测速、可手动钉）。现在全部地区都开。
-  // AI 策略组先选择国家组，再由国家组选择自动测速或具体节点；自动测速不会跨国家。
+  // AI 应用直接选择国家自动或国家全部节点；国家自动不会跨国家测速。
   const REGIONS = [
     { key: "🇺🇸 美国",  re: /美国|USA|(?:^|[^A-Za-z])US(?:$|[^A-Za-z])|United\s?States|America|洛杉矶|圣何塞|硅谷|Seattle|New\s?York|Dallas|Chicago|Phoenix|西雅图|纽约|芝加哥|达拉斯|凤凰城/i, auto: true },
     { key: "🇭🇰 香港",  re: /香港|\bHK\b|Hong\s?Kong/i, auto: true },
@@ -159,7 +159,7 @@ function main(config, name) {
     if (hit) buckets[hit].push(nm); else others.push(nm);
   }
 
-  // ---------- 5. 策略组（每地区一个选择组，仅在有节点时建；标 auto 的区做手自一体）----------
+  // ---------- 5. 策略组（每地区仅保留自动与全部节点两类入口）----------
   const regionGroups = [];
   const autoGroups = [];
   const REGION_NAMES = [];
@@ -167,20 +167,21 @@ function main(config, name) {
     const excluded = REGIONS.slice(0, index).map(region => region.re.source);
     const nodes = buckets[r.key];
     if (nodes.length === 0 && !hasProviders) return;
-    const gname = r.key + "节点";
+    const gname = r.key + "全部节点";
     if (r.auto) {
       const aname = "♻️ " + r.key.split(/\s+/).pop() + "自动";
       autoGroups.push(withProviders({ name: aname, type: "url-test", proxies: nodes.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, r.re.source, excluded));
-      regionGroups.push(withProviders({ name: gname, type: "select", proxies: [aname].concat(nodes) }, r.re.source, excluded)); // 手自一体：默认自动，可手动钉
+      regionGroups.push(withProviders({ name: gname, type: "select", proxies: nodes.slice() }, r.re.source, excluded));
+      REGION_NAMES.push(aname, gname);
     } else {
       regionGroups.push(withProviders({ name: gname, type: "select", proxies: nodes.slice() }, r.re.source, excluded));          // 纯手动
+      REGION_NAMES.push(gname);
     }
-    REGION_NAMES.push(gname);
   });
   if (others.length > 0 || hasProviders) {
-    autoGroups.push(withProviders({ name: "♻️ 其它自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, null, REGIONS.map(r => r.re.source)));
-    regionGroups.push(withProviders({ name: "🌐 其它地区", type: "select", proxies: ["♻️ 其它自动"].concat(others) }, null, REGIONS.map(r => r.re.source))); // 手自一体
-    REGION_NAMES.push("🌐 其它地区");
+    autoGroups.push(withProviders({ name: "♻️ 其他国家自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, null, REGIONS.map(r => r.re.source)));
+    regionGroups.push(withProviders({ name: "🌐 其他国家全部节点", type: "select", proxies: others.slice() }, null, REGIONS.map(r => r.re.source)));
+    REGION_NAMES.push("♻️ 其他国家自动", "🌐 其他国家全部节点");
   }
 
   const globalAuto = {
@@ -193,7 +194,7 @@ function main(config, name) {
 
   const mainGroup = {
     name: "🎯 全局分流", type: "select",
-    // 默认 ♻️全局自动（测速选最快）；DIRECT 次之；再各地区组。选地区组进去挑具体节点。
+    // 默认全局自动，DIRECT 次之；随后每地区自动与全部节点。
     proxies: ["♻️ 全局自动", "DIRECT"].concat(REGION_NAMES)
   };
   // Only terminal unmatched traffic enters this selector. Preserve the old route
@@ -203,18 +204,17 @@ function main(config, name) {
     proxies: ["🎯 全局分流", "DIRECT", "♻️ 全局自动"].concat(REGION_NAMES)
   };
 
-  // 三大 AI 组引用美、台、日、新国家组；Claude/OpenAI 再追加同范围具体节点快捷入口。
-  // 其它 AI 在国家组范围上增加欧洲。自动测速始终限制在已选择的国家内部。
-  const existingRegionGroup = (key) => (buckets[key].length > 0 || hasProviders) ? key + "节点" : null;
+  // 三大 AI 组引用美、台、日、新自动与全部节点，另保留具体节点快捷入口。
+  // 其它 AI 增加欧洲。国家自动始终限制在同一国家内部。
+  const existingRegionGroups = (key) => (buckets[key].length > 0 || hasProviders)
+    ? ["♻️ " + key.split(/\s+/).pop() + "自动", key + "全部节点"] : [];
   const majorAiRegionKeys = ["🇺🇸 美国", "🌏 台湾", "🇯🇵 日本", "🇸🇬 新加坡"];
   const majorAiRegionGroups = majorAiRegionKeys
-    .map(existingRegionGroup)
-    .filter(Boolean);
+    .reduce((groups, key) => groups.concat(existingRegionGroups(key)), []);
   const majorAiDirectNodes = majorAiRegionKeys
     .reduce((nodes, key) => nodes.concat(buckets[key]), []);
   const quickAiProxies = majorAiRegionGroups.concat(majorAiDirectNodes);
-  const europeRegionGroup = existingRegionGroup("🇪🇺 欧洲");
-  const otherAiRegionGroups = majorAiRegionGroups.concat(europeRegionGroup ? [europeRegionGroup] : []);
+  const otherAiRegionGroups = majorAiRegionGroups.concat(existingRegionGroups("🇪🇺 欧洲"));
   if (majorAiRegionGroups.length === 0) {
     throw new Error("AI 策略组需要至少一个美国、台湾、日本或新加坡节点；请检查订阅节点命名后重试。");
   }
@@ -223,7 +223,7 @@ function main(config, name) {
     proxies: quickAiProxies
   };
 
-  // 独立保留国家组，并直接展示同范围节点，不改变原国家组默认值。
+  // 独立保留国家自动与全部节点，并直接展示同范围节点。
   const googleAiGroup = {
     name: "🔷 Google/Gemini/Antigravity", type: "select",
     proxies: quickAiProxies.slice()

@@ -38,13 +38,13 @@ const privateDnsAddress = [172, 16, 4, 103].join(".");
 assert.ok(!internalDnsTemplate.includes(privateDnsAddress), "public Clash template must not contain the private DNS address");
 assert.doesNotMatch(internalDnsTemplate, /^rules:/m, "public global config template must not overwrite subscription rules");
 
-const majorAiCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
+const majorAiCountries = ["♻️ 美国自动", "🇺🇸 美国全部节点", "♻️ 台湾自动", "🌏 台湾全部节点", "♻️ 日本自动", "🇯🇵 日本全部节点", "♻️ 新加坡自动", "🇸🇬 新加坡全部节点"];
 const majorAiQuickNodes = ["US-A", "Seattle-01", "台湾-A", "Kaohsiung-01", "日本-A", "Fukuoka-01", "新加坡-A"];
 const serviceCountries = new Map([
   ["🧠 Claude", majorAiCountries.concat(majorAiQuickNodes)],
   ["✨ OpenAI/AI", majorAiCountries.concat(majorAiQuickNodes)],
   ["🔷 Google/Gemini/Antigravity", majorAiCountries.concat(majorAiQuickNodes)],
-  ["🤖 其他 AI 服务", majorAiCountries.concat("🇪🇺 欧洲节点")]
+  ["🤖 其他 AI 服务", majorAiCountries.concat("♻️ 欧洲自动", "🇪🇺 欧洲全部节点")]
 ]);
 
 for (const groupName of [
@@ -65,11 +65,11 @@ assert.deepEqual(
 assert.ok(result.rules.includes("GEOSITE,category-ai-!cn,🤖 其他 AI 服务"));
 
 for (const [groupName, expectedProxies] of [
-  ["🇺🇸 美国节点", ["♻️ 美国自动", "US-A", "Seattle-01"]],
-  ["🌏 台湾节点", ["♻️ 台湾自动", "台湾-A", "Kaohsiung-01"]],
-  ["🇯🇵 日本节点", ["♻️ 日本自动", "日本-A", "Fukuoka-01"]],
-  ["🇸🇬 新加坡节点", ["♻️ 新加坡自动", "新加坡-A"]],
-  ["🇪🇺 欧洲节点", ["♻️ 欧洲自动", "德国-A", "Milan-01"]]
+  ["🇺🇸 美国全部节点", ["US-A", "Seattle-01"]],
+  ["🌏 台湾全部节点", ["台湾-A", "Kaohsiung-01"]],
+  ["🇯🇵 日本全部节点", ["日本-A", "Fukuoka-01"]],
+  ["🇸🇬 新加坡全部节点", ["新加坡-A"]],
+  ["🇪🇺 欧洲全部节点", ["德国-A", "Milan-01"]]
 ]) {
   const group = result["proxy-groups"].find((candidate) => candidate.name === groupName);
   assert.ok(group, `missing country group: ${groupName}`);
@@ -80,8 +80,8 @@ const japanOnly = context.main({ proxies: [{ name: "日本-B", type: "ss" }], ru
 for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务"]) {
   const group = japanOnly["proxy-groups"].find((candidate) => candidate.name === groupName);
   const expected = ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity"].includes(groupName)
-    ? ["🇯🇵 日本节点", "日本-B"]
-    : ["🇯🇵 日本节点"];
+    ? ["♻️ 日本自动", "🇯🇵 日本全部节点", "日本-B"]
+    : ["♻️ 日本自动", "🇯🇵 日本全部节点"];
   assert.deepEqual(Array.from(group.proxies), expected);
 }
 

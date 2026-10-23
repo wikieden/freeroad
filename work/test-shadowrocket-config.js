@@ -85,9 +85,9 @@ const groupNames = new Set(groupLines.map((line) => line.split("=")[0].trim()));
 
 for (const groupName of [
   "🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务", "🎯 国外代理",
-  "🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点", "🇪🇺 欧洲节点",
+  "🇺🇸 美国全部节点", "🌏 台湾全部节点", "🇯🇵 日本全部节点", "🇸🇬 新加坡全部节点", "🇪🇺 欧洲全部节点",
   "♻️ 美国自动", "♻️ 台湾自动", "♻️ 日本自动", "♻️ 新加坡自动", "♻️ 欧洲自动",
-  "♻️ 国外自动", "🌐 其他国家节点", "♻️ 其他国家自动"
+  "♻️ 国外自动", "🌐 其他国家全部节点", "♻️ 其他国家自动"
 ]) {
   assert.ok(groupNames.has(groupName), `missing proxy group: ${groupName}`);
 }
@@ -97,8 +97,8 @@ assert.match(foreignGroupLine, /=\s*select,/);
 assert.deepEqual(
   foreignGroupLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
   [
-    "♻️ 国外自动", "DIRECT", "🇺🇸 美国节点", "🌏 台湾节点", "🇭🇰 香港节点", "🇯🇵 日本节点",
-    "🇸🇬 新加坡节点", "🇰🇷 韩国节点", "🇪🇺 欧洲节点", "🌐 其他国家节点"
+    "♻️ 国外自动", "DIRECT", "♻️ 美国自动", "🇺🇸 美国全部节点", "♻️ 台湾自动", "🌏 台湾全部节点", "♻️ 香港自动", "🇭🇰 香港全部节点", "♻️ 日本自动", "🇯🇵 日本全部节点",
+    "♻️ 新加坡自动", "🇸🇬 新加坡全部节点", "♻️ 韩国自动", "🇰🇷 韩国全部节点", "♻️ 欧洲自动", "🇪🇺 欧洲全部节点", "♻️ 其他国家自动", "🌐 其他国家全部节点"
   ]
 );
 
@@ -113,9 +113,9 @@ for (const node of ["中国-上海", "回国-01", "加拿大-剩余流量 50 GB"
   assert.equal(foreignAutoMatcher.test(node), false, `foreign auto must exclude ${node}`);
 }
 
-const otherCountryLine = groupLines.find((candidate) => candidate.startsWith("🌐 其他国家节点 ="));
+const otherCountryLine = groupLines.find((candidate) => candidate.startsWith("🌐 其他国家全部节点 ="));
 const otherCountryAutoLine = groupLines.find((candidate) => candidate.startsWith("♻️ 其他国家自动 ="));
-assert.match(otherCountryLine, /=\s*select,♻️ 其他国家自动,policy-regex-filter=/);
+assert.match(otherCountryLine, /=\s*select,policy-regex-filter=/);
 assert.match(otherCountryAutoLine, /=\s*url-test,/);
 const otherCountryFilter = otherCountryLine.match(/policy-regex-filter=(.*),select=0$/)[1];
 assert.equal(otherCountryAutoLine.match(/policy-regex-filter=(.*)$/)[1], otherCountryFilter);
@@ -130,14 +130,15 @@ for (const node of [
   assert.equal(otherCountryMatcher.test(node), false, `other countries must exclude ${node}`);
 }
 
-const majorCountries = ["🇺🇸 美国节点", "🌏 台湾节点", "🇯🇵 日本节点", "🇸🇬 新加坡节点"];
+const majorCountries = ["🇺🇸 美国全部节点", "🌏 台湾全部节点", "🇯🇵 日本全部节点", "🇸🇬 新加坡全部节点"];
 const majorAutomatic = ["♻️ 美国自动", "♻️ 台湾自动", "♻️ 日本自动", "♻️ 新加坡自动"];
+const majorChoices = majorCountries.flatMap((country, i) => [majorAutomatic[i], country]);
 for (const groupName of ["🧠 Claude", "✨ OpenAI/AI"]) {
   const line = groupLines.find((candidate) => candidate.startsWith(`${groupName} =`));
   assert.match(line, /=\s*select,/);
   assert.match(line, /policy-regex-filter=/);
   assert.doesNotMatch(line, /url-test|欧洲节点/);
-  const expectedChoices = majorCountries.concat(majorAutomatic);
+  const expectedChoices = majorChoices;
   assert.deepEqual(line.match(/=\s*select,(.*),policy-regex-filter=/)[1].split(","), expectedChoices);
 
   const filter = line.match(/policy-regex-filter=(.*),select=0$/)[1];
@@ -152,29 +153,29 @@ for (const groupName of ["🧠 Claude", "✨ OpenAI/AI"]) {
 
 const googleAiLine = groupLines.find((candidate) => candidate.startsWith("🔷 Google/Gemini/Antigravity ="));
 assert.doesNotMatch(googleAiLine, /policy-regex-filter=|url-test|欧洲节点/);
-assert.deepEqual(googleAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","), majorCountries.concat(majorAutomatic));
+assert.deepEqual(googleAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","), majorChoices);
 
 const otherAiLine = groupLines.find((candidate) => candidate.startsWith("🤖 其他 AI 服务 ="));
 assert.doesNotMatch(otherAiLine, /policy-regex-filter=|url-test/);
 assert.deepEqual(
   otherAiLine.match(/=\s*select,(.*),select=0$/)[1].split(","),
-  majorCountries.concat("🇪🇺 欧洲节点", majorAutomatic, "♻️ 欧洲自动")
+  majorChoices.concat("♻️ 欧洲自动", "🇪🇺 欧洲全部节点")
 );
 
 const countryFixtures = [
-  { country: "🇭🇰 香港节点", automatic: "♻️ 香港自动", allowed: ["HK-A", "香港-A"], rejected: ["韩国-A", "香港-剩余流量"] },
-  { country: "🇰🇷 韩国节点", automatic: "♻️ 韩国自动", allowed: ["KR-A", "Seoul-A"], rejected: ["香港-A", "韩国-套餐到期"] },
-  { country: "🇺🇸 美国节点", automatic: "♻️ 美国自动", allowed: ["🇺🇸 US-A", "美国-洛杉矶-01", "Seattle-01"], rejected: ["Russia-01", "日本-东京-01", "美国-剩余流量 50 GB"] },
-  { country: "🌏 台湾节点", automatic: "♻️ 台湾自动", allowed: ["🇹🇼 TW-A", "台湾-台北-01", "Kaohsiung-01"], rejected: ["Russia-01", "新加坡-A", "台湾-套餐到期"] },
-  { country: "🇯🇵 日本节点", automatic: "♻️ 日本自动", allowed: ["🇯🇵 JP-A", "日本-东京-01", "Fukuoka-01"], rejected: ["Russia-01", "美国-Seattle-01", "日本-剩余流量 50 GB"] },
-  { country: "🇸🇬 新加坡节点", automatic: "♻️ 新加坡自动", allowed: ["🇸🇬 SG-A", "新加坡-A"], rejected: ["Russia-01", "台湾-A", "新加坡-官网公告"] },
-  { country: "🇪🇺 欧洲节点", automatic: "♻️ 欧洲自动", allowed: ["🇩🇪 DE-A", "英国-London-01", "IT-Milan-01", "ES-Madrid-01"], rejected: ["Russia-01", "US-A", "德国-剩余流量 50 GB"] }
+  { country: "🇭🇰 香港全部节点", automatic: "♻️ 香港自动", allowed: ["HK-A", "香港-A"], rejected: ["韩国-A", "香港-剩余流量"] },
+  { country: "🇰🇷 韩国全部节点", automatic: "♻️ 韩国自动", allowed: ["KR-A", "Seoul-A"], rejected: ["香港-A", "韩国-套餐到期"] },
+  { country: "🇺🇸 美国全部节点", automatic: "♻️ 美国自动", allowed: ["🇺🇸 US-A", "美国-洛杉矶-01", "Seattle-01"], rejected: ["Russia-01", "日本-东京-01", "美国-剩余流量 50 GB"] },
+  { country: "🌏 台湾全部节点", automatic: "♻️ 台湾自动", allowed: ["🇹🇼 TW-A", "台湾-台北-01", "Kaohsiung-01"], rejected: ["Russia-01", "新加坡-A", "台湾-套餐到期"] },
+  { country: "🇯🇵 日本全部节点", automatic: "♻️ 日本自动", allowed: ["🇯🇵 JP-A", "日本-东京-01", "Fukuoka-01"], rejected: ["Russia-01", "美国-Seattle-01", "日本-剩余流量 50 GB"] },
+  { country: "🇸🇬 新加坡全部节点", automatic: "♻️ 新加坡自动", allowed: ["🇸🇬 SG-A", "新加坡-A"], rejected: ["Russia-01", "台湾-A", "新加坡-官网公告"] },
+  { country: "🇪🇺 欧洲全部节点", automatic: "♻️ 欧洲自动", allowed: ["🇩🇪 DE-A", "英国-London-01", "IT-Milan-01", "ES-Madrid-01"], rejected: ["Russia-01", "US-A", "德国-剩余流量 50 GB"] }
 ];
 
 for (const { country, automatic, allowed, rejected } of countryFixtures) {
   const countryLine = groupLines.find((candidate) => candidate.startsWith(`${country} =`));
   const automaticLine = groupLines.find((candidate) => candidate.startsWith(`${automatic} =`));
-  assert.match(countryLine, new RegExp(`=\\s*select,${automatic},policy-regex-filter=`));
+  assert.match(countryLine, /=\s*select,policy-regex-filter=/);
   assert.match(automaticLine, /=\s*url-test,/);
   assert.match(automaticLine, /policy-regex-filter=/);
 

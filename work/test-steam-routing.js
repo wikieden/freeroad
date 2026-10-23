@@ -24,7 +24,7 @@ for (const input of [
   const group = output["proxy-groups"].find(group => group.name === "🎮 Steam");
   assert.equal(group.proxies[0], "♻️ 全局自动");
   assert.ok(group.proxies.includes("DIRECT"));
-  assert.ok(group.proxies.includes("🇺🇸 美国节点"));
+  assert.ok(group.proxies.includes("🇺🇸 美国全部节点"));
 
   const route = host => {
     const rule = shadowRules.find(rule => {

@@ -9,7 +9,8 @@ for(const file of ['clash-goblal-extend-script.js','clash-global-residential-ext
   const group=out['proxy-groups'].find(g=>g.name===app);
   for(const name of names)assert(group.proxies.includes(name),app+' missing inline choice '+name);
   for(const key of Object.keys(input['proxy-providers']))assert(group.use.includes(key),app+' missing provider '+key);
-  assert.equal(group.proxies[0],'🇺🇸 美国节点');
+  assert.equal(group.proxies[0],'♻️ 美国自动');
+  assert(group.proxies.includes('🇺🇸 美国全部节点'));
   for(const name of ['美国 Verizon · 主线','美国 Verizon · 备用｜链式','新加坡高倍01 3x流量','日本普通03']){
    assert(new RegExp(group.filter.replace(/^\(\?i\)/,''),'i').test(name));
    assert(!new RegExp(group['exclude-filter'].replace(/^\(\?i\)/,''),'i').test(name));

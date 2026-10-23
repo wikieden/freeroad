@@ -31,10 +31,11 @@ function main(config, name) {
   // including residential chained copies. The user owns loop avoidance here.
   // Keep the existing default and the automatic transit pool unchanged.
   const allAutomatic = output['proxy-groups'].filter(g => g.type === 'url-test').map(g => g.name);
+  const allCountryNodes = output['proxy-groups'].filter(g => g.name.endsWith('全部节点')).map(g => g.name);
   const inlineChoices = (output.proxies || []).map(p => p.name).filter(Boolean);
   const select = {
     name:front,type:'select',
-    proxies:Array.from(new Set([frontAuto].concat(allAutomatic,inlineChoices))),
+    proxies:Array.from(new Set([frontAuto].concat(allAutomatic,allCountryNodes,inlineChoices))),
     use:Object.keys(originalProviders),
     'exclude-filter':'(?i)支持[ _-]*AI[ :：]|流量(?:剩余|不足|耗尽|重置|用尽)|重置|过期|到期|套餐|官网|公告|剩余|续费|购买|客服',
     'empty-fallback':'REJECT'

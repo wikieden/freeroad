@@ -39,8 +39,8 @@ for (const g of output['proxy-groups']) {
   if (!['🖥️ 美国 VPS 出口', '🛫 出国前置', '🧠 Claude', '✨ OpenAI/AI', '🔷 Google/Gemini/Antigravity'].includes(g.name)) assert(!(g.use || []).some(key => homeProviders.includes(key)));
   if (g.type === 'url-test') assert(!(g.use || []).some(key => key.startsWith('private-')));
 }
-assert(group('🇺🇸 美国节点').use.includes('private-fixed-ip'));
-assert(group('🇺🇸 美国节点').use.includes('private-vps-direct'));
+assert(group('🇺🇸 美国全部节点').use.includes('private-fixed-ip'));
+assert(group('🇺🇸 美国全部节点').use.includes('private-vps-direct'));
 for (const name of ['🧠 Claude', '✨ OpenAI/AI', '🔷 Google/Gemini/Antigravity', '🤖 其他 AI 服务']) {
   const old = base['proxy-groups'].find(g => g.name === name);
   assert.deepEqual(Array.from(group(name).proxies).slice(0, -1), Array.from(old.proxies));
