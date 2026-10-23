@@ -196,6 +196,12 @@ function freeroadBaseMain(config, name) {
     // 默认 ♻️全局自动（测速选最快）；DIRECT 次之；再各地区组。选地区组进去挑具体节点。
     proxies: ["♻️ 全局自动", "DIRECT"].concat(REGION_NAMES)
   };
+  // Only terminal unmatched traffic enters this selector. Preserve the old route
+  // by default, but allow a separate DIRECT or regional choice.
+  const unmatchedGroup = {
+    name: "❓ 未识别流量", type: "select",
+    proxies: ["🎯 全局分流", "DIRECT", "♻️ 全局自动"].concat(REGION_NAMES)
+  };
 
   // 三大 AI 组引用美、台、日、新国家组；Claude/OpenAI 再追加同范围具体节点快捷入口。
   // 其它 AI 在国家组范围上增加欧洲。自动测速始终限制在已选择的国家内部。
@@ -255,7 +261,7 @@ function freeroadBaseMain(config, name) {
   };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, mainGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, mainGroup, unmatchedGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   // Maintained Proxy aggregate. Its domains and IP ranges supplement existing
@@ -465,7 +471,7 @@ function freeroadBaseMain(config, name) {
     "GEOSITE,cn,DIRECT",
     "GEOIP,cn,DIRECT",
     "RULE-SET,freeroad-proxy,🎯 全局分流",
-    "MATCH,🎯 全局分流"
+    "MATCH,❓ 未识别流量"
   ];
 
   // ---------- 6.1 个人规则 + 私网直连规则（插到最前，优先级最高）----------

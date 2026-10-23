@@ -187,7 +187,7 @@ for (const { country, automatic, allowed, rejected } of countryFixtures) {
 }
 
 const ruleLines = activeLines.slice(ruleStart + 1);
-assert.equal(ruleLines.at(-1), "FINAL,🎯 国外代理");
+assert.equal(ruleLines.at(-1), "FINAL,❓ 未识别流量");
 for (const loopbackRule of [
   "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
   "IP-CIDR6,::1/128,DIRECT,no-resolve",

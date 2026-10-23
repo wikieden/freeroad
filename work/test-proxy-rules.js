@@ -7,7 +7,7 @@ const domain='DOMAIN-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule
 for(const r of [rule,domain]){
  assert.equal(shadow.filter(l=>l===r).length,1,'Shadowrocket Proxy rule must occur once');
  assert(shadow.indexOf(r)>shadow.indexOf('GEOIP,CN,DIRECT'),'Domestic direct routes retain priority');
- assert(shadow.indexOf(r)<shadow.indexOf('FINAL,🎯 国外代理'));
+ assert(shadow.indexOf(r)<shadow.indexOf('FINAL,❓ 未识别流量'));
 }
 for(const file of ['clash-goblal-extend-script.js','clash-global-residential-extend-script.js']){
  const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx);
@@ -19,7 +19,7 @@ for(const file of ['clash-goblal-extend-script.js','clash-global-residential-ext
  const r='RULE-SET,freeroad-proxy,🎯 全局分流';
  assert.equal(out.rules.filter(v=>v===r).length,1);
  for(const previous of ['GEOSITE,cn,DIRECT','GEOIP,cn,DIRECT','DOMAIN-SUFFIX,openai.com,✨ OpenAI/AI','DOMAIN-SUFFIX,steampowered.com,🎮 Steam'])assert(out.rules.indexOf(previous)<out.rules.indexOf(r));
- assert(out.rules.indexOf(r)<out.rules.indexOf('MATCH,🎯 全局分流'));
+ assert(out.rules.indexOf(r)<out.rules.indexOf('MATCH,❓ 未识别流量'));
  const twice=ctx.main(out,'repeat');assert.equal(twice.rules.filter(v=>v===r).length,1);
  assert.equal(twice['proxy-groups'].find(g=>g.name==='🎯 全局分流').proxies[0],'♻️ 全局自动');
 }
