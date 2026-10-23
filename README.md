@@ -352,6 +352,10 @@ Clash Verge 的 `global-extension.yaml` 是合并片段，不能单独当作完�
 
 #### 私有配置：维护差异，统一生成
 
+Claude、OpenAI、Google/Gemini/Antigravity 的手动选择组保留国家组与原默认项，同时直接列出美/台/日/新范围内的普通节点，以及同范围的私人固定出口原始节点和 `｜链式` 副本；不改变自动测速池或默认路由。Shadowrocket 私有版使用生成时已知的显式节点名单，父组不叠加正则；新增订阅节点后需更新名单并重新生成。节点入口可选不等于链路已验收，尤其不能将 Shadowrocket 原始 VLESS 节点解释为已配置 Proxy Pass。
+
+私人 VPS 更换 IP 时，应在私有维护源同时更新原始与链式 provider 的订阅地址，再重新生成完整包和 FlClash 拆分包。Shadowrocket 的节点由订阅/原生节点链接维护，单独重导入 conf 不会更新首页节点地址；请同步更新节点订阅，并复核 Proxy Pass。真实地址、订阅令牌及节点链接只随私有云盘版本发布，不提交到本仓库；历史版本保持原样。
+
 HTTP 节点 provider 默认补充 `User-Agent: clash.meta`，避免部分订阅返回 Base64 通用链接列表或拒绝非 Clash 请求；已有自定义 User-Agent 保留。国家分组仍按节点名字匹配，`2X/3x/10x` 等倍率不作为排除条件。节点整批缺失时应先检查 provider 下载和响应格式，再检查国家筛选；本地规则测试不代表设备已恢复。
 
 FlClash 也可使用两文件方案：私有本地 `freeroad-local.yaml` 保存订阅、节点和 DNS，配套 `freeroad-extension.js` 使用本仓库的 `clash-global-residential-extend-script.js`，统一生成分组和分流规则。在 FlClash 导入本地 YAML 后，须在该配置的脚本覆写中绑定配套 JS；不能将它当作 Clash Verge 的全局扩展配置直接粘贴。为避免漏绑脚本后误用，两文件私有包的本地 YAML 只提供最小前置组与 `MATCH,REJECT`；脚本应用后重建完整分组与规则。拆分包已完成本地内核校验及与完整包的配置等价检查，尚未代表 FlClash 设备导入验收。

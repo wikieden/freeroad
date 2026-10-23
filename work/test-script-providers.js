@@ -40,5 +40,5 @@ for (const name of ["🧠 Claude", "✨ OpenAI/AI"]) {
   for (const node of ["Hong Kong 01", "Russia 02", "美国剩余流量"]) assert.ok(!match(groups[name], node));
   assert.equal(groups[name]["empty-fallback"], "REJECT");
 }
-assert.equal(groups["🔷 Google/Gemini/Antigravity"].use, undefined);
+assert.deepEqual(Array.from(groups["🔷 Google/Gemini/Antigravity"].use), ["alpha", "beta"]);
 console.log("PASS: Claude/OpenAI expose both providers' eligible nodes directly");

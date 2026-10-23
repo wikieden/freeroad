@@ -217,10 +217,10 @@ function main(config, name) {
     proxies: quickAiProxies
   };
 
-  // Google / Gemini / Antigravity：独立选择国家组，避免与其它 AI 联动。
+  // 独立保留国家组，并直接展示同范围节点，不改变原国家组默认值。
   const googleAiGroup = {
     name: "🔷 Google/Gemini/Antigravity", type: "select",
-    proxies: majorAiRegionGroups
+    proxies: quickAiProxies.slice()
   };
 
   // Claude / Anthropic：独立策略组 + 全量域名规则，最大化降低风控概率。
@@ -235,6 +235,7 @@ function main(config, name) {
     .map(r => r.re.source).join("|");
   withProviders(claudeGroup, majorAiProviderFilter);
   withProviders(aiGroup, majorAiProviderFilter);
+  withProviders(googleAiGroup, majorAiProviderFilter);
 
   // 其他境外 AI：在美、台、日、新之外提供欧洲国家组；国内 AI 仍不进入本组。
   const otherAiGroup = {

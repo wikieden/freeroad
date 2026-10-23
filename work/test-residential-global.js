@@ -36,7 +36,7 @@ assert(!/住宅|IPIPGO|lychee|sunflare/i.test(group('🛫 出国前置')['exclud
 assert.equal(group('🛫 出国前置').proxies[0], '♻️ 出国前置自动');
 assert.equal(group('🛫 出国前置')['empty-fallback'], 'REJECT');
 for (const g of output['proxy-groups']) {
-  if (!['🖥️ 美国 VPS 出口', '🛫 出国前置'].includes(g.name)) assert(!(g.use || []).some(key => homeProviders.includes(key)));
+  if (!['🖥️ 美国 VPS 出口', '🛫 出国前置', '🧠 Claude', '✨ OpenAI/AI', '🔷 Google/Gemini/Antigravity'].includes(g.name)) assert(!(g.use || []).some(key => homeProviders.includes(key)));
   if (g.type === 'url-test') assert(!(g.use || []).some(key => key.startsWith('private-')));
 }
 assert(group('🇺🇸 美国节点').use.includes('private-fixed-ip'));

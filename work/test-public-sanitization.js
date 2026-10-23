@@ -43,7 +43,7 @@ const majorAiQuickNodes = ["US-A", "Seattle-01", "台湾-A", "Kaohsiung-01", "�
 const serviceCountries = new Map([
   ["🧠 Claude", majorAiCountries.concat(majorAiQuickNodes)],
   ["✨ OpenAI/AI", majorAiCountries.concat(majorAiQuickNodes)],
-  ["🔷 Google/Gemini/Antigravity", majorAiCountries],
+  ["🔷 Google/Gemini/Antigravity", majorAiCountries.concat(majorAiQuickNodes)],
   ["🤖 其他 AI 服务", majorAiCountries.concat("🇪🇺 欧洲节点")]
 ]);
 
@@ -79,7 +79,7 @@ for (const [groupName, expectedProxies] of [
 const japanOnly = context.main({ proxies: [{ name: "日本-B", type: "ss" }], rules: [] }, "japan-only");
 for (const groupName of ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity", "🤖 其他 AI 服务"]) {
   const group = japanOnly["proxy-groups"].find((candidate) => candidate.name === groupName);
-  const expected = ["🧠 Claude", "✨ OpenAI/AI"].includes(groupName)
+  const expected = ["🧠 Claude", "✨ OpenAI/AI", "🔷 Google/Gemini/Antigravity"].includes(groupName)
     ? ["🇯🇵 日本节点", "日本-B"]
     : ["🇯🇵 日本节点"];
   assert.deepEqual(Array.from(group.proxies), expected);

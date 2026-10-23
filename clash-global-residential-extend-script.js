@@ -217,10 +217,10 @@ function freeroadBaseMain(config, name) {
     proxies: quickAiProxies
   };
 
-  // Google / Gemini / Antigravity：独立选择国家组，避免与其它 AI 联动。
+  // 独立保留国家组，并直接展示同范围节点，不改变原国家组默认值。
   const googleAiGroup = {
     name: "🔷 Google/Gemini/Antigravity", type: "select",
-    proxies: majorAiRegionGroups
+    proxies: quickAiProxies.slice()
   };
 
   // Claude / Anthropic：独立策略组 + 全量域名规则，最大化降低风控概率。
@@ -235,6 +235,7 @@ function freeroadBaseMain(config, name) {
     .map(r => r.re.source).join("|");
   withProviders(claudeGroup, majorAiProviderFilter);
   withProviders(aiGroup, majorAiProviderFilter);
+  withProviders(googleAiGroup, majorAiProviderFilter);
 
   // 其他境外 AI：在美、台、日、新之外提供欧洲国家组；国内 AI 仍不进入本组。
   const otherAiGroup = {
@@ -500,6 +501,12 @@ function main(config, name) {
   const ordinaryProviders = Object.keys(originalProviders).filter(key => !/^private-/.test(key));
   const output = freeroadBaseMain(config, name);
   if (!homeProviders.length) return output;
+  // These manual AI selectors expose original and chained exits directly.
+  // Snapshot before generic cleanup, which still isolates automatic pools.
+  const directAiApps = ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity'];
+  const directAiChoices = new Map(output['proxy-groups']
+    .filter(g => directAiApps.includes(g.name))
+    .map(g => [g.name, g.proxies.slice()]));
   const front = '🛫 出国前置', frontAuto = '♻️ 出国前置自动', home = '🖥️ 美国 VPS 出口';
   const residential = /固定[ _-]*IP|家宅|住宅|IPIPGO|lychee|sunflare|(?:vless|tuic)(?:[｜-]+链式)?$/i;
   const blockedInline = new Set((output.proxies || []).filter(p => p['dialer-proxy'] || residential.test(p.name)).map(p => p.name));
@@ -531,7 +538,10 @@ function main(config, name) {
     const g = output['proxy-groups'].find(g => g.name === app);
     if (!g) throw new Error('Missing AI application group');
     // Keep the old default; users explicitly choose residential egress when needed.
-    g.proxies = g.proxies.filter(p => p !== home).concat(home);
+    if (directAiApps.includes(app)) {
+      g.proxies = Array.from(new Set(directAiChoices.get(app).concat(home)));
+      g.use = Object.keys(originalProviders);
+    } else g.proxies = g.proxies.filter(p => p !== home).concat(home);
   }
   return output;
 }
