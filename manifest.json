@@ -1,0 +1,33 @@
+{
+  "preparedDate": "2026-10-24",
+  "files": [
+    {
+      "file": "index.html",
+      "sha256": "aeeff0fd50c819d5bbf0711bd743bc3039343b9119bc5197b636c7ba672564ae"
+    },
+    {
+      "file": "test-results.html",
+      "sha256": "0a72b9fab5a7c31a2c1c9b5f6681d971df7d628e5b5c845fed63d6bf9102c0c4"
+    },
+    {
+      "file": "field-notes.md",
+      "sha256": "f89be2ff9a99f19791204a4834b1e20425ae4c7a5a74491cebee35f837d102d1"
+    },
+    {
+      "file": "test-results.md",
+      "sha256": "a7042dd35c91569fd48e88cfcf94fc8acbe270d8d37624cef980e326e6de46ba"
+    },
+    {
+      "file": "style.css",
+      "sha256": "86748ab3311fac9d29fc785aa96a46e293521da64386149a19174970c4cfbc48"
+    },
+    {
+      "file": "evidence/public-test-data.json",
+      "sha256": "18808ca95f8b998faa1407352ccd5be1c48730083956f512c05527d5133caa7c"
+    },
+    {
+      "file": ".nojekyll",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
