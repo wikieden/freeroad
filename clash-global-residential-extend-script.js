@@ -135,12 +135,12 @@ function freeroadBaseMain(config, name) {
   // auto:true = 该区做手自一体（默认自动测速、可手动钉）。现在全部地区都开。
   // AI 应用直接选择国家自动或国家全部节点；国家自动不会跨国家测速。
   const REGIONS = [
-    { key: "🇺🇸 美国",  re: /美国|USA|(?:^|[^A-Za-z])US(?:$|[^A-Za-z])|United\s?States|America|洛杉矶|圣何塞|硅谷|Seattle|New\s?York|Dallas|Chicago|Phoenix|西雅图|纽约|芝加哥|达拉斯|凤凰城/i, auto: true },
-    { key: "🇭🇰 香港",  re: /香港|\bHK\b|Hong\s?Kong/i, auto: true },
-    { key: "🇯🇵 日本",  re: /日本|\bJP\b|Japan|东京|大阪|Fukuoka|Nagoya|福冈|福岡|名古屋/i, auto: true },
-    { key: "🇸🇬 新加坡", re: /新加坡|狮城|\bSG\b|Singapore/i, auto: true },
-    { key: "🌏 台湾",  re: /台湾|台灣|\bTW\b|Taiwan|Taipei|Taichung|Kaohsiung|台北|台中|高雄|新北/i, auto: true },
-    { key: "🇰🇷 韩国",  re: /韩国|首尔|\bKR\b|Korea/i, auto: true },
+    { key: "🇺🇸 美国", re: /(?:🇺🇸|USA|(?:^|[^A-Za-z])US(?:$|[^A-Za-z])|United[ _-]?States|America|美国|洛杉矶|圣何塞|硅谷|Seattle|New[ _-]?York|Dallas|Chicago|Phoenix|西雅图|纽约|芝加哥|达拉斯|凤凰城)/i, auto: true },
+    { key: "🇭🇰 香港", re: /(🇭🇰|(?:^|[ _-])HK(?:$|[ _-])|Hong[ _-]?Kong|香港)/i, auto: true },
+    { key: "🇯🇵 日本", re: /(?:🇯🇵|(?:^|[ _-])JP(?:$|[ _-])|Japan|Tokyo|Fukuoka|Nagoya|日本|东京|大阪|福冈|福岡|名古屋)/i, auto: true },
+    { key: "🇸🇬 新加坡", re: /(?:🇸🇬|(?:^|[ _-])SG(?:$|[ _-])|Singapore|新加坡|狮城)/i, auto: true },
+    { key: "🌏 台湾", re: /(?:🇹🇼|(?:^|[ _-])TWN?(?:$|[ _-])|Taiwan|Taipei|Taichung|Kaohsiung|台湾|台灣|台北|台中|高雄|新北)/i, auto: true },
+    { key: "🇰🇷 韩国", re: /(🇰🇷|(?:^|[ _-])KR(?:$|[ _-])|Korea|Seoul|韩国|首尔)/i, auto: true },
     { key: "🇪🇺 欧洲",  re: /(?:欧洲|歐洲|德国|德國|法国|法國|英国|英國|荷兰|荷蘭|意大利|義大利|西班牙|瑞士|瑞典|挪威|芬兰|芬蘭|丹麦|丹麥|奥地利|奧地利|比利时|比利時|爱尔兰|愛爾蘭|波兰|波蘭|捷克|匈牙利|葡萄牙|希腊|希臘|罗马尼亚|羅馬尼亞|保加利亚|保加利亞|乌克兰|烏克蘭|塞尔维亚|塞爾維亞|克罗地亚|克羅地亞|冰岛|冰島|卢森堡|盧森堡|爱沙尼亚|愛沙尼亞|拉脱维亚|拉脫維亞|立陶宛|斯洛伐克|斯洛文尼亚|斯洛文尼亞|马耳他|馬耳他|塞浦路斯|阿尔巴尼亚|阿爾巴尼亞|北马其顿|北馬其頓|波黑|波斯尼亚|波斯尼亞|白俄罗斯|白俄羅斯|摩尔多瓦|摩爾多瓦|黑山|科索沃|列支敦士登|摩纳哥|摩納哥|安道尔|安道爾|圣马力诺|聖馬利諾|梵蒂冈|梵蒂岡|Germany|France|Britain|United[ _-]?Kingdom|Europe|Italy|Spain|Netherlands|Switzerland|Swiss|Sweden|Norway|Finland|Denmark|Austria|Belgium|Ireland|Poland|Czechia|Czech[ _-]?Republic|Hungary|Portugal|Greece|Romania|Bulgaria|Ukraine|Serbia|Croatia|Iceland|Luxembourg|Estonia|Latvia|Lithuania|Slovakia|Slovenia|Malta|Cyprus|Albania|North[ _-]?Macedonia|Bosnia|Herzegovina|Belarus|Moldova|Montenegro|Kosovo|Liechtenstein|Monaco|Andorra|San[ _-]?Marino|Vatican|London|Frankfurt|Milan|Madrid|Rome|Amsterdam|Paris|Berlin|Zurich|Zürich|Geneva|Stockholm|Oslo|Helsinki|Copenhagen|Vienna|Brussels|Dublin|Warsaw|Prague|Budapest|Lisbon|Athens|Bucharest|Sofia|Kyiv|Kiev|Belgrade|Zagreb|Reykjavik|Tallinn|Riga|Vilnius|Bratislava|Ljubljana|米兰|米蘭|马德里|馬德里|罗马|羅馬|伦敦|倫敦|巴黎|柏林|法兰克福|法蘭克福|阿姆斯特丹|苏黎世|蘇黎世|日内瓦|日內瓦|斯德哥尔摩|斯德哥爾摩|奥斯陆|奧斯陸|赫尔辛基|赫爾辛基|哥本哈根|维也纳|維也納|布鲁塞尔|布魯塞爾|都柏林|华沙|華沙|布拉格|布达佩斯|布達佩斯|里斯本|雅典|🇪🇺|🇩🇪|🇫🇷|🇬🇧|🇳🇱|🇮🇹|🇪🇸|🇨🇭|🇸🇪|🇳🇴|🇫🇮|🇩🇰|🇦🇹|🇧🇪|🇮🇪|🇵🇱|🇨🇿|🇭🇺|🇵🇹|🇬🇷|🇷🇴|🇧🇬|🇺🇦|🇷🇸|🇭🇷|🇮🇸|🇱🇺|🇪🇪|🇱🇻|🇱🇹|🇸🇰|🇸🇮|🇲🇹|🇨🇾|🇦🇱|🇲🇰|🇧🇦|🇧🇾|🇲🇩|🇲🇪|🇽🇰|🇱🇮|🇲🇨|🇦🇩|🇸🇲|🇻🇦|(?:^|[^A-Za-z])(?:EU|UK|GB|DE|FR|NL|IT|ES|CH|SE|NO|FI|DK|AT|BE|IE|PL|CZ|HU|PT|GR|RO|BG|UA|RS|HR|IS|LU|EE|LV|LT|SK|SI|MT|CY|AL|MK|BA|BY|MD|ME|XK|LI|MC|AD|SM|VA)(?:$|[^A-Za-z]))/i, auto: true }
   ];
 
@@ -148,6 +148,8 @@ function freeroadBaseMain(config, name) {
   REGIONS.forEach(r => { buckets[r.key] = []; });
   const others = [];
   const all = [];
+  // Match the private/generic Shadowrocket "other countries" exclusion.
+  const domesticNodePattern = /中国|大陆|回国|Mainland|China|🇨🇳/i;
 
   for (const p of config.proxies) {
     const nm = p && p.name;
@@ -156,7 +158,7 @@ function freeroadBaseMain(config, name) {
     all.push(nm);
     let hit = null;
     for (const r of REGIONS) { if (r.re.test(nm)) { hit = r.key; break; } }
-    if (hit) buckets[hit].push(nm); else others.push(nm);
+    if (hit) buckets[hit].push(nm); else if (!domesticNodePattern.test(nm)) others.push(nm);
   }
 
   // ---------- 5. 策略组（每地区仅保留自动与全部节点两类入口）----------
@@ -179,8 +181,9 @@ function freeroadBaseMain(config, name) {
     }
   });
   if (others.length > 0 || hasProviders) {
-    autoGroups.push(withProviders({ name: "♻️ 其他国家自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, null, REGIONS.map(r => r.re.source)));
-    regionGroups.push(withProviders({ name: "🌐 其他国家全部节点", type: "select", proxies: others.slice() }, null, REGIONS.map(r => r.re.source)));
+    const otherExcluded = REGIONS.map(r => r.re.source).concat(domesticNodePattern.source);
+    autoGroups.push(withProviders({ name: "♻️ 其他国家自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, null, otherExcluded));
+    regionGroups.push(withProviders({ name: "🌐 其他国家全部节点", type: "select", proxies: others.slice() }, null, otherExcluded));
     REGION_NAMES.push("♻️ 其他国家自动", "🌐 其他国家全部节点");
   }
 

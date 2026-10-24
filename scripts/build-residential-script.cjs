@@ -2,7 +2,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
+const {execFileSync} = require('node:child_process');
 const root = path.resolve(__dirname, '..');
+execFileSync(process.execPath, [path.join(__dirname, 'sync-country-patterns.cjs'), '--check']);
+execFileSync(process.execPath, [path.join(__dirname, 'sync-europe-pattern.cjs'), '--check']);
 const base = fs.readFileSync(path.join(root, 'clash-goblal-extend-script.js'), 'utf8');
 const overlay = fs.readFileSync(path.join(root, 'templates/clash-residential-overlay.js'), 'utf8');
 assert.equal((base.match(/function main\(/g) || []).length, 1);

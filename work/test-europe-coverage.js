@@ -4,6 +4,7 @@ const root=path.resolve(__dirname,'..');
 // First four reproduce omissions in the current SSONE subscription (2026-10-23).
 const european=['pro-瑞士-5x','pro-波兰','pro-希腊-5x','pro-爱尔兰-2x','Sweden-01','Norway-2X','Finland-01','Denmark-01','Austria-01','Belgium-01','Portugal-01','Czechia-01','Hungary-01','Romania-01','Bulgaria-01','Ukraine-01','Serbia-01','Croatia-01','Iceland-01','Luxembourg-01','Estonia-01','Latvia-01','Lithuania-01','Slovakia-01','Slovenia-01','Malta-01','Cyprus-01','🇨🇭 01','🇸🇪 01','🇵🇱 01','CH01','CH-01','线路01_CH','SE01','PL01','Dublin-01','Zurich-01','Stockholm-01','Warsaw-01'];
 const other=['Russia-01','Turkey-01','Canada-01','Australia-01','Brazil-01','Chile-01','US-01','Fukuoka-01','Seoul-01','瑞士-剩余流量 50GB'];
+other.push('lite-家庭宽带-韩国sk-2x');
 european.push('pro-乌克兰-2x','pro-立陶宛-5x','pro-保加利亚-1x','pro-塞尔维亚-2x','pro-克罗地亚-2x','pro-阿尔巴尼亚-2x');
 const failures=[];
 for(const file of ['clash-goblal-extend-script.js','clash-global-residential-extend-script.js']){

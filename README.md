@@ -62,6 +62,8 @@ Claude、OpenAI 和 Google/Gemini/Antigravity 分别使用独立策略组；其�
 
 欧洲筛选涵盖欧洲国家中英文名、国旗、常见城市及带字母边界的短码，瑞士、波兰、希腊、爱尔兰、乌克兰等不再落入“其他国家”。俄罗斯、土耳其暂沿用原分类，仍在其他国家。分类依据节点名称，不验证实际出口地理位置；Shadowrocket 的欧洲/其他国家筛选与 Clash 的生成数据统一维护在 `scripts/sync-europe-pattern.cjs`。修改后先运行该脚本，再运行 `scripts/build-residential-script.cjs` 并重新生成私有包；旧私有筛选覆盖也必须迁移。
 
+公开版国家识别沿用私有版的通用部分：国旗、中英文名称、地区短码及城市别名；不复制私有节点名、地址或订阅。`scripts/sync-country-patterns.cjs` 从公开 Shadowrocket 通用自动组生成 Clash 的国家别名，并使欧洲组排除优先命中的美、港、日、新、台、韩名称，避免韩国 SK 宽带被斯洛伐克短码误分到欧洲。其他国家排除中国、回国及已识别国家。生成顺序为 `sync-europe-pattern.cjs` → `sync-country-patterns.cjs` → `build-residential-script.cjs`；最后一步会检查前两步是否同步。私有定名例外仍只保留在私有覆盖中。
+
 为了减少选择步骤，`🧠 Claude`、`✨ OpenAI/AI` 和 `🔷 Google/Gemini/Antigravity` 还直接列出美、台、日、新具体节点和私人出口快捷入口。`🤖 其他 AI 服务` 保留国家自动、国家全部节点及私有 VPS 出口组。Clash 首个 AI 默认项为美国自动；Shadowrocket 私有版保留已有显式选择，旧国家父组选择会迁移到对应自动或全部节点组。
 
 Shadowrocket 的应用组直接引用地区自动及全部节点选项，具体范围见第八章。自动测速只在对应地区内切换，不验证 Claude 登录、账号状态或目标应用可用性。
