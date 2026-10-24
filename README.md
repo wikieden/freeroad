@@ -2,6 +2,8 @@
 
 > 如果需要注册 ChatGPT、Claude 或相关 Agent 服务，请查看 [Freedom To ChatGPT Claude Agent](https://github.com/wikieden/Freedom-To-Chatgpt-Claude-Agent)。
 
+> 项目实践、踩坑与历史测试：[实践复盘](./docs/field-notes.md) · [脱敏测试全表](./docs/test-results.md) · [GitHub Pages 阅读版](https://wikieden.github.io/freeroad/)。测试结果是历史快照，不是实时服务可用性保证。
+
 Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工具，为 Claude、OpenAI、Google/Gemini/Antigravity 和其他 AI 服务提供独立出口、国家节点选择、DNS 防泄漏与安全检测方案。
 
 只使用代理服务商自带的默认分流策略通常远远不够。AI 服务的登录、API、静态资源和遥测请求可能落到不同出口，DNS、UDP 或 WebRTC 泄漏也会影响账号稳定性与检测结果。不信可以先打开 [Net.Coffee Claude AI IP 风险检测](https://ip.net.coffee/claude/) 看一下当前出口评分，再决定是否需要独立的 AI 分流策略。
