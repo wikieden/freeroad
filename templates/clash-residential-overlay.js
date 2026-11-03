@@ -13,7 +13,7 @@ function main(config, name) {
   const directAiChoices = new Map(output['proxy-groups']
     .filter(g => directAiApps.includes(g.name))
     .map(g => [g.name, g.proxies.slice()]));
-  const front = '🛫 出国前置', frontAuto = '♻️ 出国前置自动', home = '🖥️ 美国 VPS 出口';
+  const front = '🛫 出国前置', frontAuto = '♻️ 出国前置自动', home = '🖥️ 美国 VPS 出口', home2 = '🖥️ 美国 VPS 出口2';
   const residential = /固定[ _-]*IP|家宅|住宅|IPIPGO|lychee|sunflare|(?:vless|tuic)(?:[｜-]+链式)?$/i;
   const blockedInline = new Set((output.proxies || []).filter(p => p['dialer-proxy'] || residential.test(p.name)).map(p => p.name));
   const validInline = new Set((output.proxies || []).filter(p => !blockedInline.has(p.name)).map(p => p.name));
@@ -40,7 +40,9 @@ function main(config, name) {
     'exclude-filter':'(?i)支持[ _-]*AI[ :：]|流量(?:剩余|不足|耗尽|重置|用尽)|重置|过期|到期|套餐|官网|公告|剩余|续费|购买|客服',
     'empty-fallback':'REJECT'
   };
-  output['proxy-groups'].push(auto,select,{name:home,type:'select',proxies:[],use:homeProviders,'empty-fallback':'REJECT'});
+  output['proxy-groups'].push(auto,select,
+    {name:home,type:'select',proxies:[],use:homeProviders.slice(),'empty-fallback':'REJECT'},
+    {name:home2,type:'select',proxies:[],use:homeProviders.slice(),'empty-fallback':'REJECT'});
   for (const app of ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity','🤖 其他 AI 服务']) {
     const g = output['proxy-groups'].find(g => g.name === app);
     if (!g) throw new Error('Missing AI application group');
@@ -49,6 +51,12 @@ function main(config, name) {
       g.proxies = Array.from(new Set(directAiChoices.get(app).concat(home)));
       g.use = Object.keys(originalProviders);
     } else g.proxies = g.proxies.filter(p => p !== home).concat(home);
+  }
+  // Each selector stores its own choice while reusing the same live providers.
+  // Append only: existing application defaults and routing rules stay intact.
+  for (const app of ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity','🤖 其他 AI 服务','🎮 Steam','🎯 全局分流','🎬 国际媒体','❓ 未识别流量']) {
+    const g = output['proxy-groups'].find(g => g.name === app);
+    if (g) g.proxies = Array.from(new Set((g.proxies || []).concat(home2)));
   }
   return output;
 }
