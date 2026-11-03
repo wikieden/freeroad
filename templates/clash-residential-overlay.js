@@ -58,5 +58,8 @@ function main(config, name) {
     const g = output['proxy-groups'].find(g => g.name === app);
     if (g) g.proxies = Array.from(new Set((g.proxies || []).concat(home2)));
   }
+  const pinnedNames = ['♻️ 其他国家自动', frontAuto, front, home, home2];
+  const pinned = pinnedNames.map(name => output['proxy-groups'].find(g => g.name === name)).filter(Boolean);
+  output['proxy-groups'] = pinned.concat(output['proxy-groups'].filter(g => !pinnedNames.includes(g.name)));
   return output;
 }

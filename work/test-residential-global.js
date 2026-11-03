@@ -25,6 +25,8 @@ const input = { 'proxy-providers': providers, proxies: [{ name: '美国-普通�
 const base = ctx.freeroadBaseMain(structuredClone(input), 'base');
 const output = ctx.main(structuredClone(input), 'residential');
 const group = name => output['proxy-groups'].find(g => g.name === name);
+const pinnedNames = ['♻️ 其他国家自动','♻️ 出国前置自动','🛫 出国前置','🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2'];
+assert.deepEqual(Array.from(output['proxy-groups'].slice(0,5), g=>g.name), pinnedNames);
 const homeProviders = ['private-residential-manual', 'private-residential-vps'];
 assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口').use), homeProviders);
 assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口2').use), homeProviders);
@@ -56,6 +58,7 @@ for (const name of ['🎮 Steam','🎯 全局分流','🎬 国际媒体','❓ �
   assert.equal(group(name).proxies[0], base['proxy-groups'].find(g=>g.name===name).proxies[0]);
 }
 const rerun = ctx.main(structuredClone(output), 'repeat');
+assert.deepEqual(Array.from(rerun['proxy-groups'].slice(0,5), g=>g.name), pinnedNames);
 assert.equal(rerun['proxy-groups'].filter(g => g.name === '🖥️ 美国 VPS 出口').length, 1);
 assert.equal(rerun['proxy-groups'].filter(g => g.name === '🖥️ 美国 VPS 出口2').length, 1);
 assert.equal(new Set(group('🛫 出国前置').proxies).size, group('🛫 出国前置').proxies.length);
