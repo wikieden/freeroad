@@ -173,7 +173,7 @@ function main(config, name) {
     if (r.auto) {
       const aname = "♻️ " + r.key.split(/\s+/).pop() + "自动";
       autoGroups.push(withProviders({ name: aname, type: "url-test", proxies: nodes.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, r.re.source, excluded));
-      regionGroups.push(withProviders({ name: gname, type: "select", proxies: nodes.slice() }, r.re.source, excluded));
+      regionGroups.push(withProviders({ name: gname, type: "select", proxies: [aname].concat(nodes) }, r.re.source, excluded));
       REGION_NAMES.push(aname, gname);
     } else {
       regionGroups.push(withProviders({ name: gname, type: "select", proxies: nodes.slice() }, r.re.source, excluded));          // 纯手动
@@ -183,7 +183,7 @@ function main(config, name) {
   if (others.length > 0 || hasProviders) {
     const otherExcluded = REGIONS.map(r => r.re.source).concat(domesticNodePattern.source);
     autoGroups.push(withProviders({ name: "♻️ 其他国家自动", type: "url-test", proxies: others.slice(), url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50 }, null, otherExcluded));
-    regionGroups.push(withProviders({ name: "🌐 其他国家全部节点", type: "select", proxies: others.slice() }, null, otherExcluded));
+    regionGroups.push(withProviders({ name: "🌐 其他国家全部节点", type: "select", proxies: ["♻️ 其他国家自动"].concat(others) }, null, otherExcluded));
     REGION_NAMES.push("♻️ 其他国家自动", "🌐 其他国家全部节点");
   }
 
