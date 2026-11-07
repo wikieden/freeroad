@@ -132,7 +132,7 @@ assert.ok(twice.rules.indexOf("GEOSITE,google,🔷 Google/Gemini/Antigravity") <
 assert.ok(twice.rules.indexOf(googleUdpGuard) < twice.rules.indexOf("DOMAIN-SUFFIX,perplexity.ai,🤖 其他 AI 服务"));
 assert.ok(twice.rules.indexOf("GEOSITE,category-ai-!cn,🤖 其他 AI 服务") < twice.rules.indexOf(otherAiUdpGuard));
 assert.ok(twice.rules.indexOf(otherAiUdpGuard) < twice.rules.indexOf("GEOSITE,category-ads-all,🚫 广告拦截"));
-assert.ok(twice.rules.indexOf(otherAiUdpGuard) < twice.rules.indexOf("GEOSITE,apple,DIRECT"));
+assert.ok(twice.rules.indexOf(otherAiUdpGuard) < twice.rules.indexOf("GEOSITE,apple,MS-Apple"));
 const advertisingRuleIndex = twice.rules.indexOf("GEOSITE,category-ads-all,🚫 广告拦截");
 const typesafeRule = "DOMAIN-SUFFIX,typesafe.ai,🤖 其他 AI 服务";
 assert.equal(twice.rules.filter((rule) => rule === typesafeRule).length, 1);

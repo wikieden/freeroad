@@ -73,7 +73,8 @@ for (const [groupName, expectedProxies] of [
 ]) {
   const group = result["proxy-groups"].find((candidate) => candidate.name === groupName);
   assert.ok(group, `missing country group: ${groupName}`);
-  assert.deepEqual(Array.from(group.proxies), expectedProxies);
+  const autoName = "♻️ " + groupName.split(" ").at(-1).replace("全部节点", "自动");
+  assert.deepEqual(Array.from(group.proxies), [autoName].concat(expectedProxies));
 }
 
 const japanOnly = context.main({ proxies: [{ name: "日本-B", type: "ss" }], rules: [] }, "japan-only");

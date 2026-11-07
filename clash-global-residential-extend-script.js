@@ -206,6 +206,10 @@ function freeroadBaseMain(config, name) {
     name: "❓ 未识别流量", type: "select",
     proxies: ["🎯 全局分流", "DIRECT", "♻️ 全局自动"].concat(REGION_NAMES)
   };
+  const msAppleGroup = {
+    name: "MS-Apple", type: "select",
+    proxies: ["DIRECT", "🎯 全局分流"].concat(REGION_NAMES)
+  };
 
   // 三大 AI 组引用美、台、日、新自动与全部节点，另保留具体节点快捷入口。
   // 其它 AI 增加欧洲。国家自动始终限制在同一国家内部。
@@ -264,7 +268,7 @@ function freeroadBaseMain(config, name) {
   };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, mainGroup, unmatchedGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   // Maintained Proxy aggregate. Its domains and IP ranges supplement existing
@@ -453,17 +457,23 @@ function freeroadBaseMain(config, name) {
     "DOMAIN-SUFFIX,ghcr.io,🎯 全局分流",
     "DOMAIN-SUFFIX,githubcopilot.com,🎯 全局分流",
 
-    // 厂商规则（Google 已在 AI 规则区固定独立组，Apple 直连）
-    "GEOSITE,apple,DIRECT",
-    // 微软：国内可达的服务（@cn：dynamics.cn / lync.cn / microsoftonline-m.cn 等）直连，
-    // 其余（海外）微软走代理 —— 海外 IP 一律走全局分流。@cn 必须排在 microsoft 前。
-    "GEOSITE,microsoft@cn,DIRECT",
-    // Windows Update / 分发优化：巨型系统下载，国内直连快，绕代理只会更慢更烧流量 → 直连
-    "DOMAIN-SUFFIX,windowsupdate.com,DIRECT",
-    "DOMAIN-SUFFIX,update.microsoft.com,DIRECT",
-    "DOMAIN-SUFFIX,delivery.mp.microsoft.com,DIRECT",
-    "DOMAIN-SUFFIX,do.dsp.mp.microsoft.com,DIRECT",
-    "GEOSITE,microsoft,🎯 全局分流",
+    // Apple/iCloud、微软网站、OneDrive 与系统更新共用可切换策略，默认直连。
+    // GitHub 与前面的 AI、Steam 专属规则保留更高优先级。
+    "DOMAIN-SUFFIX,apple.com,MS-Apple",
+    "DOMAIN-SUFFIX,icloud.com,MS-Apple",
+    "DOMAIN-SUFFIX,icloud.com.cn,MS-Apple",
+    "DOMAIN-SUFFIX,icloud-content.com,MS-Apple",
+    "DOMAIN-SUFFIX,onedrive.com,MS-Apple",
+    "DOMAIN-SUFFIX,onedrive.live.com,MS-Apple",
+    "DOMAIN-SUFFIX,1drv.com,MS-Apple",
+    "DOMAIN-SUFFIX,1drv.ms,MS-Apple",
+    "DOMAIN-SUFFIX,sharepoint.com,MS-Apple",
+    "DOMAIN-SUFFIX,windowsupdate.com,MS-Apple",
+    "DOMAIN-SUFFIX,update.microsoft.com,MS-Apple",
+    "DOMAIN-SUFFIX,delivery.mp.microsoft.com,MS-Apple",
+    "DOMAIN-SUFFIX,do.dsp.mp.microsoft.com,MS-Apple",
+    "GEOSITE,apple,MS-Apple",
+    "GEOSITE,microsoft,MS-Apple",
 
     // NTP 时间同步：统一走代理出口，避免时区与代理地区不一致触发隐蔽风控
     "GEOSITE,category-ntp,🎯 全局分流",
