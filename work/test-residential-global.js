@@ -31,7 +31,7 @@ for (const [name, expected] of [['🧠 Claude','🖥️ 美国 VPS 出口'],['�
   assert.equal(requestedDefaults['proxy-groups'].find(g => g.name === name).proxies[0], expected);
 }
 assert(!Object.hasOwn(requestedDefaults, 'freeroad-defaults'));
-assert.deepEqual(Array.from(requestedDefaults['proxy-groups'].find(g => g.name === '🖥️ 自建 VPS').use), ['private-vps-direct']);
+assert.deepEqual(Array.from(requestedDefaults['proxy-groups'].find(g => g.name === '🖥️ 自建 VPS').use), ['private-residential-vps']);
 assert(!requestedDefaults['proxy-groups'].find(g => g.name === '🛫 出国前置').proxies.includes('🎯 全局分流'));
 const group = name => output['proxy-groups'].find(g => g.name === name);
 const pinnedNames = ['🛫 出国前置','🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2'];
@@ -40,21 +40,21 @@ assert.deepEqual(Array.from(output['proxy-groups'].slice(0,3), g=>g.name), pinne
 assert.equal(output['proxy-groups'][3].name, '🖥️ 自建 VPS');
 assert.deepEqual(Array.from(output['proxy-groups'].slice(-2), g=>g.name), trailingNames);
 const homeProviders = ['private-residential-manual', 'private-residential-vps'];
-assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口').use), homeProviders.concat('private-vps-direct', 'private-fixed-ip'));
-assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口2').use), homeProviders.concat('private-vps-direct', 'private-fixed-ip'));
+assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口').use), homeProviders);
+assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口2').use), homeProviders);
 assert.notEqual(group('🖥️ 美国 VPS 出口2').use, group('🖥️ 美国 VPS 出口').use);
 assert.notEqual(group('🖥️ 美国 VPS 出口2').proxies, group('🖥️ 美国 VPS 出口').proxies);
 assert.deepEqual(Array.from(group('🛫 出国前置').use), Object.keys(providers));
 assert.deepEqual(Array.from(group('♻️ 出国前置自动').use), ['airport']);
-for (const g of output['proxy-groups'].filter(g => g.type === 'url-test' && !['♻️ LisaVPS 自动','♻️ AkiVPS 自动'].includes(g.name))) {
+for (const g of output['proxy-groups'].filter(g => g.type === 'url-test' && !g.name.endsWith('｜链式') && !['♻️ LisaVPS 自动','♻️ AkiVPS 自动'].includes(g.name))) {
   assert(group('🛫 出国前置').proxies.includes(g.name), `Missing automatic choice: ${g.name}`);
 }
 assert(!/住宅|IPIPGO|lychee|sunflare/i.test(group('🛫 出国前置')['exclude-filter']));
 assert.equal(group('🛫 出国前置').proxies[0], '♻️ 出国前置自动');
 assert.equal(group('🛫 出国前置')['empty-fallback'], 'REJECT');
 for (const g of output['proxy-groups']) {
-  if (!['🇮🇱 以色列全部节点', '🖥️ 美国 VPS 出口', '🖥️ 美国 VPS 出口2', '🛫 出国前置', '🧠 Claude', '✨ OpenAI/AI', '🔷 Google/Gemini/Antigravity'].includes(g.name)) assert(!(g.use || []).some(key => homeProviders.includes(key)));
-  if (g.type === 'url-test' && !['♻️ LisaVPS 自动','♻️ AkiVPS 自动'].includes(g.name)) assert(!(g.use || []).some(key => key.startsWith('private-')));
+  if (!g.name.endsWith('｜链式') && !['🖥️ 自建 VPS','🇮🇱 以色列全部节点', '🖥️ 美国 VPS 出口', '🖥️ 美国 VPS 出口2', '🛫 出国前置', '🧠 Claude', '✨ OpenAI/AI', '🔷 Google/Gemini/Antigravity'].includes(g.name)) assert(!(g.use || []).some(key => homeProviders.includes(key)));
+  if (g.type === 'url-test' && !g.name.endsWith('｜链式') && !['♻️ LisaVPS 自动','♻️ AkiVPS 自动'].includes(g.name)) assert(!(g.use || []).some(key => key.startsWith('private-')));
 }
 assert(group('🇺🇸 美国全部节点').use.includes('private-fixed-ip'));
 assert(group('🇺🇸 美国全部节点').use.includes('private-vps-direct'));
@@ -94,8 +94,8 @@ console.log('PASS: residential groups, US choices, automatic exclusion, unrestri
 for (const name of ["♻️ LisaVPS 自动","📋 LisaVPS 全部节点","🇭🇰 香港全部节点","🇸🇬 新加坡全部节点","🇯🇵 日本全部节点","🇮🇱 以色列全部节点"]) assert(group("🛫 出国前置").proxies.includes(name));
 
 for (const n of ['🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2']) {
-  assert(group(n).proxies.includes('♻️ LisaVPS 自动'));
-  assert(group(n).proxies.includes('📋 LisaVPS 全部节点'));
+  assert(group(n).proxies.includes('♻️ LisaVPS 自动｜链式'));
+  assert(group(n).proxies.includes('📋 LisaVPS 全部节点｜链式'));
   assert.equal(group(n).filter, group('🇺🇸 美国全部节点').filter);
   assert(!group(n).use.includes('airport'));
   assert(!group(n).proxies.includes('🇺🇸 美国全部节点'));
@@ -106,25 +106,25 @@ const twoDefaults = ctx.main({...structuredClone(input), 'freeroad-defaults': {
   'egress1-provider':'private-fixed-ip', 'egress2-provider':'private-residential-manual'
 }}, 'two-egress-defaults');
 for (const [name, helper, provider] of [
-  ['🖥️ 美国 VPS 出口','🇺🇸 美国 VPS 默认线路','private-fixed-ip'],
+  ['🖥️ 美国 VPS 出口','🇺🇸 美国 VPS 默认线路','private-residential-manual'],
   ['🖥️ 美国 VPS 出口2','🇺🇸 美国 VPS 出口2默认线路','private-residential-manual']
 ]) {
   assert.equal(twoDefaults['proxy-groups'].find(g=>g.name===name).proxies[0],helper);
   assert.deepEqual(Array.from(twoDefaults['proxy-groups'].find(g=>g.name===helper).use),[provider]);
 }
 
-assert.deepEqual(Array.from(group('🖥️ 自建 VPS').proxies),['📋 LisaVPS 全部节点','♻️ LisaVPS 自动']);
-assert.deepEqual(Array.from(group('🖥️ 自建 VPS').use),['private-vps-direct']);
+assert.deepEqual(Array.from(group('🖥️ 自建 VPS').proxies),['📋 LisaVPS 全部节点｜链式','♻️ LisaVPS 自动｜链式']);
+assert.deepEqual(Array.from(group('🖥️ 自建 VPS').use),['private-residential-vps']);
 const bothVps=ctx.main({...structuredClone(input),'proxy-providers':{
-  ...structuredClone(providers),'private-akicloud-direct':{type:'file',path:'./aki.yaml'}
+  ...structuredClone(providers),'private-akicloud-direct':{type:'file',path:'./aki.yaml'},'private-residential-akicloud':{type:'file',path:'./aki-chain.yaml',override:{'dialer-proxy':'🛫 出国前置'}}
 }},'both-self-hosted');
 const selfGroup=bothVps['proxy-groups'].find(g=>g.name==='🖥️ 自建 VPS');
-assert.deepEqual(Array.from(selfGroup.proxies),['📋 LisaVPS 全部节点','♻️ LisaVPS 自动','📋 AkiVPS 全部节点','♻️ AkiVPS 自动']);
+assert.deepEqual(Array.from(selfGroup.proxies),['📋 LisaVPS 全部节点｜链式','♻️ LisaVPS 自动｜链式','📋 AkiVPS 全部节点｜链式','♻️ AkiVPS 自动｜链式']);
 assert(!selfGroup.proxies.includes('🖥️ 自建 VPS'));
-assert.deepEqual(Array.from(selfGroup.use),['private-vps-direct','private-akicloud-direct']);
+assert.deepEqual(Array.from(selfGroup.use),['private-residential-vps','private-residential-akicloud']);
 
 const withResip=ctx.main({...structuredClone(input),'proxy-providers':{
-  ...structuredClone(providers),'private-resip-direct':{type:'inline',payload:[
+  ...structuredClone(providers),'private-residential-resip':{type:'inline',payload:[{name:'美国 RESIP 主线｜链式',type:'socks5','dialer-proxy':'🛫 出国前置'}]},'private-resip-direct':{type:'inline',payload:[
     {name:'美国 RESIP 主线',type:'socks5'},{name:'美国 RESIP 备用',type:'socks5'}
   ]}
 }},'resip-auto');
@@ -132,4 +132,27 @@ const resipAuto=withResip['proxy-groups'].find(g=>g.name==='♻️ RESIP 自动'
 assert.equal(resipAuto.type,'url-test');
 assert.deepEqual(Array.from(resipAuto.use),['private-resip-direct']);
 for(const name of ['🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2','🖥️ 自建 VPS','🛫 出国前置'])
-  assert(withResip['proxy-groups'].find(g=>g.name===name).proxies.includes('♻️ RESIP 自动'));
+  assert(withResip['proxy-groups'].find(g=>g.name===name).proxies.includes(name==='🛫 出国前置'?'♻️ RESIP 自动':'♻️ RESIP 自动｜链式'));
+
+// Follow nested selectors/default helpers as well as providers: no raw escape in VPS exits.
+function assertChainOnly(config) {
+  const groups = new Map(config['proxy-groups'].map(g=>[g.name,g]));
+  const nodes = new Map((config.proxies||[]).map(n=>[n.name,n]));
+  const seen = new Set();
+  function visit(name) {
+    if (seen.has(name)) return;
+    seen.add(name);
+    const g=groups.get(name);
+    if (!g) { assert.equal(nodes.get(name)?.['dialer-proxy'],'🛫 出国前置',name); return; }
+    for (const key of g.use||[]) {
+      const p=config['proxy-providers'][key];
+      assert(key.startsWith('private-residential-'),`${name}: raw provider ${key}`);
+      if (p.type==='inline') for(const n of p.payload) assert.equal(n['dialer-proxy']||p.override?.['dialer-proxy'],'🛫 出国前置');
+      else assert.equal(p.override?.['dialer-proxy'],'🛫 出国前置');
+    }
+    for(const child of g.proxies||[]) visit(child);
+  }
+  for(const name of ['🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2','🖥️ 自建 VPS']) visit(name);
+}
+for(const config of [output,requestedDefaults,rerun,inline,twoDefaults,bothVps,withResip]) assertChainOnly(config);
+console.log('PASS: all nested VPS exit endpoints require the transit dialer');

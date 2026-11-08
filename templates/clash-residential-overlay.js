@@ -166,6 +166,41 @@ function main(config, name) {
       target.proxies = [choice].concat((target.proxies || []).filter(p => p !== choice));
     }
   }
+  // VPS selectors are chain-only. Original groups remain available elsewhere.
+  const chainProviderMap = {
+    'private-fixed-ip':'private-residential-manual',
+    'private-vps-direct':'private-residential-vps',
+    'private-akicloud-direct':'private-residential-akicloud',
+    'private-resip-direct':'private-residential-resip'
+  };
+  const chainedProvider = key => {
+    const mapped = homeProvider(key) ? key : chainProviderMap[key];
+    if (!mapped || !originalProviders[mapped]) throw new Error('Missing chained counterpart for ' + key);
+    return mapped;
+  };
+  const chainGroups = new Map();
+  for (const rawName of ['♻️ LisaVPS 自动','📋 LisaVPS 全部节点','♻️ AkiVPS 自动','📋 AkiVPS 全部节点','♻️ RESIP 自动','📋 RESIP 全部节点']) {
+    const raw = output['proxy-groups'].find(g => g.name === rawName);
+    if (!raw) continue;
+    const chainedName = rawName + '｜链式';
+    output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
+      ...raw,name:chainedName,proxies:[],use:Array.from(new Set(raw.use.map(chainedProvider)))
+    });
+    chainGroups.set(rawName,chainedName);
+  }
+  for (const name of ['🇺🇸 美国 VPS 默认线路','🇺🇸 美国 VPS 出口2默认线路']) {
+    const g = output['proxy-groups'].find(g => g.name === name);
+    if (g) g.use = Array.from(new Set(g.use.map(chainedProvider)));
+  }
+  const validChainGroups = new Set([...chainGroups.values(),'🖥️ 自建 VPS','🇺🇸 美国 VPS 默认线路','🇺🇸 美国 VPS 出口2默认线路']);
+  for (const name of [home,home2,'🖥️ 自建 VPS']) {
+    const g = output['proxy-groups'].find(g => g.name === name);
+    if (!g) continue;
+    g.use = name === '🖥️ 自建 VPS' ? selfHostedProviders.map(chainedProvider) : homeProviders.slice();
+    g.proxies = Array.from(new Set(g.proxies.map(n => chainGroups.get(n) || n).filter(n =>
+      validChainGroups.has(n) || (output.proxies || []).some(p => p.name === n && p['dialer-proxy'] === front)
+    )));
+  }
   // Nested choices precede directly listed servers; provider nodes follow them.
   const groupNames = new Set(output['proxy-groups'].map(g => g.name));
   for (const name of [front,home,home2]) {
