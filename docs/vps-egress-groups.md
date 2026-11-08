@@ -21,7 +21,9 @@ Clash Verge 更新配套全局扩展脚本；FlClash 拆分模式更新并重新
 
 ## 分组与直接节点
 
-出国前置先列国家自动、国家全部节点和自建订阅组，再列具体节点。两个美国 VPS 出口都保留自建订阅自动/全部节点入口，同时直接提供私有原始节点与链式副本；同一节点在多个应用组中复用，不需要复制凭据。名称带“链式”的副本通过出国前置连接，原始副本单独保留。
+出国前置先列国家自动、国家全部节点和自建订阅组，再列具体节点。Clash、FlClash 和 OpenClash 的两个美国 VPS 出口及自建 VPS 只引用链式 provider；LisaVPS、AkiVPS、RESIP 的子组使用带“｜链式”的专用副本。具体链式节点同时直接列在子组之后。原始节点及原始子组供其他分组选择，同一来源复用订阅与凭据。
+
+Shadowrocket 按节点的 Proxy Pass 连接。私有配置保留 Lisa/Aki 各四种协议及自动/全部节点入口，包括当前客户端详情未提供 Proxy Pass 的 TUIC、Hysteria2；它们是用户明确保留的单跳例外。能设置 Proxy Pass 的节点继续通过出国前置。品牌自动组可能选中这些单跳节点，因此不能视为强制链式自动组。导入 conf 不会设置首页节点的 Proxy Pass。
 
 Clash、FlClash 和 OpenClash 使用 HTTP provider，节点随订阅更新。可在私有 `freeroad-defaults` 中通过 `egress1-provider`、`egress2-provider` 指定两个出口的默认 provider；默认线路子组优先使用对应 provider 的首个节点。客户端保存过的选择可能覆盖此默认值。
 
