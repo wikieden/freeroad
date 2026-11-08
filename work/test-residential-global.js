@@ -112,3 +112,13 @@ for (const [name, helper, provider] of [
   assert.equal(twoDefaults['proxy-groups'].find(g=>g.name===name).proxies[0],helper);
   assert.deepEqual(Array.from(twoDefaults['proxy-groups'].find(g=>g.name===helper).use),[provider]);
 }
+
+assert.deepEqual(Array.from(group('🖥️ 自建 VPS').proxies),['📋 LisaVPS 全部节点','♻️ LisaVPS 自动']);
+assert.deepEqual(Array.from(group('🖥️ 自建 VPS').use),['private-vps-direct']);
+const bothVps=ctx.main({...structuredClone(input),'proxy-providers':{
+  ...structuredClone(providers),'private-akicloud-direct':{type:'file',path:'./aki.yaml'}
+}},'both-self-hosted');
+const selfGroup=bothVps['proxy-groups'].find(g=>g.name==='🖥️ 自建 VPS');
+assert.deepEqual(Array.from(selfGroup.proxies),['📋 LisaVPS 全部节点','♻️ LisaVPS 自动','📋 AkiVPS 全部节点','♻️ AkiVPS 自动']);
+assert(!selfGroup.proxies.includes('🖥️ 自建 VPS'));
+assert.deepEqual(Array.from(selfGroup.use),['private-vps-direct','private-akicloud-direct']);

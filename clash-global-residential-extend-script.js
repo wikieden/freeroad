@@ -718,6 +718,12 @@ function main(config, name) {
   const usPool = output['proxy-groups'].find(g => g.name === '🇺🇸 美国全部节点');
   const vpsChoices = ['♻️ LisaVPS 自动','📋 LisaVPS 全部节点','♻️ AkiVPS 自动','📋 AkiVPS 全部节点']
     .filter(name => output['proxy-groups'].some(g => g.name === name));
+  const selfHostedGroup = output['proxy-groups'].find(g => g.name === '🖥️ 自建 VPS');
+  if (selfHostedGroup) {
+    // Keep the first original provider as the default through its all-node group.
+    selfHostedGroup.proxies = ['📋 LisaVPS 全部节点','♻️ LisaVPS 自动','📋 AkiVPS 全部节点','♻️ AkiVPS 自动']
+      .filter(name => output['proxy-groups'].some(g => g.name === name));
+  }
   for (const name of [home,home2]) {
     const g = output['proxy-groups'].find(g => g.name === name);
     g.use = Array.from(new Set(g.use.concat(Object.keys(originalProviders).filter(k => /^private-/.test(k)))));
