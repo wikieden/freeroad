@@ -90,6 +90,37 @@ function composeClash(script, fragment) {
   assert(output.rules?.length && output['proxy-groups']?.length);
   return output;
 }
+// Keep parent child choices explicit for the tested Shadowrocket import path.
+// Expand parent server choices from name snapshots using declarative leaf filters.
+function expandShadowSelections(overlay, spec, snapshots, fragment) {
+  const result = structuredClone(overlay);
+  const sources = structuredClone(snapshots);
+  for (const [key, provider] of Object.entries(fragment['proxy-providers'] || {})) {
+    if (provider.type === 'inline') sources[key] = (provider.payload || []).map(p => p.name);
+  }
+  sources['local-proxies'] = (overlay.proxies || []).map(line => key(line));
+  for (const entry of spec.groups) {
+    const definition = result.groups.set[entry.name];
+    assert(definition && !definition.includes('policy-regex-filter='), 'Parent must use explicit child references');
+    const patterns = entry.matchGroups.map(name => {
+      const leaf = result.groups.set[name];
+      assert(leaf && leaf.includes('policy-regex-filter='), 'Missing dynamic leaf filter');
+      const pattern = leaf.split('policy-regex-filter=')[1].split(/,(?:select|policy-select-name|url|interval|timeout|tolerance)=/)[0];
+      return new RegExp(pattern.replace(/^\(\?i\)/, ''), pattern.startsWith('(?i)') ? 'i' : '');
+    });
+    const nodes = [];
+    for (const source of entry.sources) {
+      assert(Array.isArray(sources[source]), 'Missing subscription name snapshot: ' + source);
+      for (const name of sources[source]) if (patterns.some(pattern => pattern.test(name))) nodes.push(name);
+    }
+    assert(nodes.length, 'No matching nodes for ' + entry.name);
+    const tokens = definition.split(',');
+    const options = tokens.filter(token => token.includes('='));
+    const children = tokens.slice(1).filter(token => !token.includes('='));
+    result.groups.set[entry.name] = [tokens[0], ...new Set(children.concat(nodes)), ...options].join(',');
+  }
+  return result;
+}
 function put(dir, file, text) {
   const target = path.join(dir, file);
   fs.mkdirSync(path.dirname(target), {recursive: true, mode: 0o700});
@@ -122,13 +153,25 @@ function cli(args) {
   const script = read(path.join(repo, 'clash-global-residential-extend-script.js'));
   // Do not publish a stale combined public script.
   execFileSync(process.execPath, [path.join(repo, 'scripts/build-residential-script.cjs'), '--check']);
-  const full = composeClash(script, loadYaml(path.join(source, 'clash-private.yaml')));
-  const shadow = composeShadow(publicShadow, overlay);
+  const fragment = loadYaml(path.join(source, 'clash-private.yaml'));
+  const full = composeClash(script, fragment);
+  const selectionPath = path.join(source, 'shadowrocket-selection-rules.json');
+  const selectionFiles = {};
+  let effectiveOverlay = overlay;
+  if (fs.existsSync(selectionPath)) {
+    const specText = read(selectionPath), spec = JSON.parse(specText);
+    assert(spec.schemaVersion === 1 && path.basename(spec.snapshotFile) === spec.snapshotFile);
+    const snapshotText = read(path.join(source, spec.snapshotFile));
+    effectiveOverlay = expandShadowSelections(overlay, spec, JSON.parse(snapshotText), fragment);
+    selectionFiles['shadowrocket-selection-rules.json'] = digest(specText);
+    selectionFiles[spec.snapshotFile] = digest(snapshotText);
+  }
+  const shadow = composeShadow(publicShadow, effectiveOverlay);
   const files = {'global-extension.yaml': privateYaml, 'global-extension.js': script, 'freeroad-flclash.yaml': dumpYaml(full), 'freeroad-shadowrocket-us-vps.conf': shadow};
-  const receipt = {schemaVersion: 1, publicCommit: execFileSync('git', ['rev-parse','HEAD'], {cwd:repo, encoding:'utf8'}).trim(), publicSources: Object.fromEntries(['shadowrocket-global.conf','clash-goblal-extend-script.js','templates/clash-residential-overlay.js'].map(f => [f,digest(read(path.join(repo,f)))])), privateSourceHashes: {'clash-private.yaml':digest(privateYaml),'shadowrocket-private.json':digest(JSON.stringify(overlay))}, files: Object.fromEntries(Object.entries(files).map(([f,t]) => [f,digest(t)])), clientApplied:false, runtimeVerified:false};
+  const receipt = {schemaVersion: 1, publicCommit: execFileSync('git', ['rev-parse','HEAD'], {cwd:repo, encoding:'utf8'}).trim(), publicSources: Object.fromEntries(['shadowrocket-global.conf','clash-goblal-extend-script.js','templates/clash-residential-overlay.js'].map(f => [f,digest(read(path.join(repo,f)))])), privateSourceHashes: {'clash-private.yaml':digest(privateYaml),'shadowrocket-private.json':digest(JSON.stringify(overlay)), ...selectionFiles}, files: Object.fromEntries(Object.entries(files).map(([f,t]) => [f,digest(t)])), clientApplied:false, runtimeVerified:false};
   for (const [f,t] of Object.entries(files)) put(output, f, t);
   put(output, 'receipt.json', JSON.stringify(receipt,null,2)+'\n');
   console.log(JSON.stringify({output, clashRules: full.rules.length, shadowRules: sections(shadow).Rule.length, clientApplied:false, runtimeVerified:false}));
 }
-module.exports = {sections, initialize, composeShadow, composeClash};
+module.exports = {sections, initialize, composeShadow, composeClash, expandShadowSelections};
 if (require.main === module) cli(process.argv.slice(2));

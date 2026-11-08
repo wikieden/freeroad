@@ -1,0 +1,14 @@
+# Public example: replace the URL only in your local copy.
+# The subscription must return Clash/Mihomo YAML, not Base64 node links.
+proxy-providers:
+  airport:
+    type: http
+    url: https://subscription.example.net/replace-me.yaml
+    path: ./proxy_provider/freeroad-airport.yaml
+    header:
+      User-Agent: [clash.meta]
+    interval: 3600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600

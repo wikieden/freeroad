@@ -49,6 +49,7 @@ Freeroad 面向 Shadowrocket、FlClash、Clash Verge Rev 等多平台代理工�
 | iPhone、iPad、Mac、Apple TV / Shadowrocket | [`shadowrocket-global.conf`](./shadowrocket-global.conf) | 需要可直接导入的完整配置、国家节点组、DoH 和广告过滤 |
 | Android / Clash Meta for Android | 自建完整 Clash/Mihomo YAML | 需要在本地 YAML 中配置私密 `proxy-providers`，不能直接导入本仓库 JS/CONF |
 | RouterOS（ROS）／爱快（iKuai）主路由 + Mihomo 旁路由 | 脚本生成的完整 Clash/Mihomo YAML | 主路由负责网络接入，OpenWrt／Linux 旁路由执行分流；需配置流量和 DNS 接管 |
+| OpenWrt / OpenClash | [`openclash-public.yaml`](./openclash-public.yaml) | 公开完整 YAML，先在本地填入订阅和控制密码，再由 OpenClash 接管流量与 DNS；[导入说明](./docs/openclash.md) |
 
 <a id="overview"></a>
 

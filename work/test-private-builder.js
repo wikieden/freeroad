@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {initialize, composeShadow, sections, composeClash} = require('../scripts/build-private-config.cjs');
+const {initialize, composeShadow, sections, composeClash, expandShadowSelections} = require('../scripts/build-private-config.cjs');
 const root = path.resolve(__dirname, '..');
 const base = '[General]\nupdate-url = https://example.org/public.conf\n[Proxy Group]\nAI = select,DIRECT\n[Rule]\nDOMAIN-SUFFIX,example.org,AI\nFINAL,DIRECT\n[Host]\nlocalhost = 127.0.0.1\n';
 const own = base.replace('[Proxy Group]', '[Proxy]\nMyNode = socks5,example.net,1080,u,p\n[Proxy Group]').replace('AI = select,DIRECT','AI = select,DIRECT,MyNode');
@@ -32,3 +32,17 @@ assert(out.rules.includes('RULE-SET,freeroad-proxy,🎯 全局分流'));
 assert.equal(JSON.stringify(fragment), original, 'Never mutate private source');
 assert.deepEqual(composeClash(fs.readFileSync(path.join(root,'clash-global-residential-extend-script.js'),'utf8'),fragment),out);
 console.log('PASS: public rule refresh, private delta, source immutability, deterministic generation, policy validation, unsafe migration rejection');
+
+const namesOverlay = {proxies:[],groups:{set:{
+  parent:'select,leaf,select=0',
+  leaf:'select,policy-regex-filter=(?i)(?:lisa|aki),select=0'
+}}};
+const selectionSpec = {groups:[{name:'parent',sources:['vps'],matchGroups:['leaf']}]};
+const selected = expandShadowSelections(namesOverlay,selectionSpec,
+  {vps:['美国lisa-vless','美国aki-tuic','PRO-美国01','美国lisa-vless']},{});
+assert.equal(selected.groups.set.parent,'select,leaf,美国lisa-vless,美国aki-tuic,select=0');
+assert.equal(namesOverlay.groups.set.parent,'select,leaf,select=0');
+const refreshed = expandShadowSelections(namesOverlay,selectionSpec,{vps:['美国lisa-new-protocol']},{});
+assert(refreshed.groups.set.parent.includes('美国lisa-new-protocol'));
+assert.throws(()=>expandShadowSelections(namesOverlay,selectionSpec,{},{}),/Missing subscription name snapshot/);
+console.log('PASS: regex-expanded direct choices, child-first ordering, original names, deduplication and refresh');

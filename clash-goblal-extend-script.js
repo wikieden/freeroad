@@ -70,7 +70,12 @@ function main(config, name) {
     "default-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
     nameserver: ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
     "proxy-server-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+    "direct-nameserver": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+    // Preserve private suffix DNS policies while Apple/Microsoft use domestic DoH.
+    "direct-nameserver-follow-policy": true,
     "nameserver-policy": {
+      "geosite:apple": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
+      "geosite:microsoft": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
       "geosite:cn": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"],
       "geosite:geolocation-!cn": ["https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query"]
     }
@@ -260,6 +265,8 @@ function main(config, name) {
     name: "🎬 国际媒体", type: "select",
     proxies: ["♻️ 全局自动", "🎯 全局分流"].concat(REGION_NAMES)
   };
+  const developerGroup = {name:"🛠️ GitHub/开发工具",type:"select",proxies:["🎯 全局分流","DIRECT"].concat(REGION_NAMES)};
+  const shoppingGroup = {name:"🛒 购物/支付",type:"select",proxies:["🎯 全局分流","DIRECT"].concat(REGION_NAMES)};
 
   const adsGroup = { name: "🚫 广告拦截", type: "select", proxies: ["REJECT", "DIRECT"] };
   const steamGroup = {
@@ -268,7 +275,7 @@ function main(config, name) {
   };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, mediaGroup, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, developerGroup, mediaGroup, shoppingGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, adsGroup].concat(regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   // Maintained Proxy aggregate. Its domains and IP ranges supplement existing
@@ -327,13 +334,94 @@ function main(config, name) {
     // OpenAI 节点不支持 UDP 时拒绝，让应用回退 TCP，不允许落入普通国外组。
     "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT",
 
-    // Google 全家桶 / Gemini / Antigravity 独立出口；cloudcode-pa 是 Antigravity 后端关键词。
+    // 🛠️ GitHub/开发工具：专属域名优先于通用厂商分类；不按共享 CDN 或整段云 IP 分流。
+    "DOMAIN-SUFFIX,github.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,githubusercontent.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,githubassets.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,github.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,ghcr.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,githubcopilot.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,npmjs.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,npmjs.org,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,yarnpkg.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,pypi.org,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,pythonhosted.org,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,docker.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,docker.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,quay.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,gitlab.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,bitbucket.org,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,golang.org,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,gcr.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,pkg.dev,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,code.visualstudio.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,vscode.dev,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,marketplace.visualstudio.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,dev.azure.com,🛠️ GitHub/开发工具",
+    // 🎬 国际媒体：专属域名优先于通用厂商分类；不按共享 CDN 或整段云 IP 分流。
+    "DOMAIN-SUFFIX,youtube.com,🔷 Google/Gemini/Antigravity",
+    "DOMAIN-SUFFIX,youtu.be,🔷 Google/Gemini/Antigravity",
+    "DOMAIN-SUFFIX,googlevideo.com,🔷 Google/Gemini/Antigravity",
+    "DOMAIN-SUFFIX,ytimg.com,🔷 Google/Gemini/Antigravity",
+    "DOMAIN-SUFFIX,netflix.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,nflxvideo.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,nflximg.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,nflximg.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,nflxso.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,nflxext.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,disneyplus.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,disney-plus.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,dssott.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,bamgrid.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,spotify.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,spotifycdn.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,spotifycdn.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,scdn.co,🎬 国际媒体",
+    "DOMAIN-SUFFIX,spoti.fi,🎬 国际媒体",
+    "DOMAIN-SUFFIX,twitch.tv,🎬 国际媒体",
+    "DOMAIN-SUFFIX,ttvnw.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,jtvnw.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,twitchcdn.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,primevideo.com,🎬 国际媒体",
+    "DOMAIN-SUFFIX,aiv-cdn.net,🎬 国际媒体",
+    "DOMAIN-SUFFIX,aiv-delivery.net,🎬 国际媒体",
+    // 🛒 购物/支付：专属域名优先于通用厂商分类；不按共享 CDN 或整段云 IP 分流。
+    "DOMAIN-SUFFIX,amazon.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.co.jp,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.co.uk,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.de,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.fr,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.it,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.es,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.ca,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.com.au,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.sg,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazon.com.hk,🛒 购物/支付",
+    "DOMAIN-SUFFIX,images-amazon.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,ssl-images-amazon.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amzn.to,🛒 购物/支付",
+    "DOMAIN-SUFFIX,amazonpay.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,paypal.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,paypal.me,🛒 购物/支付",
+    "DOMAIN-SUFFIX,paypalobjects.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,braintreepayments.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,braintreegateway.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,stripe.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,stripe.network,🛒 购物/支付",
+    "DOMAIN-SUFFIX,ebay.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,ebay.co.uk,🛒 购物/支付",
+    "DOMAIN-SUFFIX,ebay.de,🛒 购物/支付",
+    "DOMAIN-SUFFIX,ebayimg.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,etsy.com,🛒 购物/支付",
+    "DOMAIN-SUFFIX,etsystatic.com,🛒 购物/支付",
+    "GEOSITE,youtube,🔷 Google/Gemini/Antigravity",
+
+    // Google 登录、Gmail、Drive、Gemini、Antigravity；YouTube 与 Google 登录共用此组。
     "DOMAIN-SUFFIX,gemini.google.com,🔷 Google/Gemini/Antigravity",
     "DOMAIN-SUFFIX,generativelanguage.googleapis.com,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,antigravity,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,cloudcode-pa,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,makersuite,🔷 Google/Gemini/Antigravity",
-    "GEOSITE,youtube,🔷 Google/Gemini/Antigravity",
     "GEOSITE,google,🔷 Google/Gemini/Antigravity",
     // Google 组节点不支持 UDP 时拒绝，避免 QUIC 改走其它国家节点或直连。
     "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT",
@@ -449,13 +537,13 @@ function main(config, name) {
 
     // GitHub（微软旗下；国内直连常被墙/限速）→ 走代理。
     // 必须排在 GEOSITE,microsoft 之前：否则 github 域名被 microsoft 直连规则吃掉。
-    "GEOSITE,github,🎯 全局分流",
-    "DOMAIN-SUFFIX,github.com,🎯 全局分流",
-    "DOMAIN-SUFFIX,githubusercontent.com,🎯 全局分流",
-    "DOMAIN-SUFFIX,githubassets.com,🎯 全局分流",
-    "DOMAIN-SUFFIX,github.io,🎯 全局分流",
-    "DOMAIN-SUFFIX,ghcr.io,🎯 全局分流",
-    "DOMAIN-SUFFIX,githubcopilot.com,🎯 全局分流",
+    "GEOSITE,github,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,github.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,githubusercontent.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,githubassets.com,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,github.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,ghcr.io,🛠️ GitHub/开发工具",
+    "DOMAIN-SUFFIX,githubcopilot.com,🛠️ GitHub/开发工具",
 
     // Apple/iCloud、微软网站、OneDrive 与系统更新共用可切换策略，默认直连。
     // GitHub 与前面的 AI、Steam 专属规则保留更高优先级。

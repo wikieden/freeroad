@@ -1,0 +1,27 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {execFileSync}=require('node:child_process');
+const root=path.resolve(__dirname,'..');
+const file=path.join(root,'openclash-public.yaml');
+const c=JSON.parse(execFileSync('ruby',['-ryaml','-rjson','-e','puts JSON.generate(YAML.load_file(ARGV[0]))',file],{encoding:'utf8'}));
+const ctx=vm.createContext({});vm.runInContext(fs.readFileSync(path.join(root,'clash-goblal-extend-script.js'),'utf8'),ctx);
+const common=JSON.parse(JSON.stringify(ctx.main({'proxy-providers':structuredClone(c['proxy-providers'])},'OpenClash Test')));
+assert.deepEqual(c.rules,common.rules);assert.deepEqual(c['proxy-groups'],common['proxy-groups']);
+assert.deepEqual(Object.keys(c['proxy-providers']),['airport']);
+assert.equal(c['proxy-providers'].airport.url,'https://subscription.example.net/replace-me.yaml');
+assert.equal(c['proxy-providers'].airport.header['User-Agent'][0],'clash.meta');
+assert.equal(c.secret,'CHANGE_ME_BEFORE_USE');assert.equal(c['external-controller'],'127.0.0.1:9090');
+assert.equal(c['allow-lan'],true);assert(c['lan-allowed-ips'].includes('192.168.0.0/16'));
+for(const key of ['mixed-port','redir-port','tproxy-port'])assert(Number.isInteger(c[key])&&c[key]>0);
+assert.equal(c.dns.listen,'127.0.0.1:7874');assert.equal(c.dns['enhanced-mode'],'fake-ip');assert.equal(c.dns['respect-rules'],true);
+assert(!c.tun,'OpenClash controls TUN mode, not a second independent auto-route instance');
+assert.equal(c.rules.at(-1),'MATCH,❓ 未识别流量');
+for(const key of ['🇺🇸 美国全部节点','♻️ 美国自动','🇪🇺 欧洲全部节点','♻️ 欧洲自动','❓ 未识别流量'])assert(c['proxy-groups'].some(g=>g.name===key));
+assert(!c['proxy-groups'].some(g=>g.name==='🇺🇸 美国节点'));
+assert(!c['proxy-groups'].some(g=>/美国 VPS 出口|出国前置/.test(g.name)),'No private-chain groups without an exit subscription');
+assert.deepEqual(c.proxies,[],'No embedded node credentials');
+const allowedHosts=new Set(['subscription.example.net','www.gstatic.com','github.com','raw.githubusercontent.com','223.5.5.5','1.12.12.12','1.1.1.1','8.8.8.8']);
+function audit(value){if(typeof value==='string'&&/^https?:\/\//.test(value)){const u=new URL(value);assert(allowedHosts.has(u.hostname),'Unreviewed endpoint');assert(!u.username&&!u.password,'URL credentials');}else if(Array.isArray(value))value.forEach(audit);else if(value&&typeof value==='object'){for(const [key,v]of Object.entries(value)){assert(!['username','password','uuid','server'].includes(key),'No private node fields');audit(v);}}}
+audit(c);
+assert.deepEqual(Object.keys(c.dns['nameserver-policy']).sort(),['geosite:apple','geosite:cn','geosite:geolocation-!cn','geosite:microsoft'].sort());
+execFileSync(process.execPath,[path.join(root,'scripts/build-openclash-config.cjs'),'--check']);
+console.log('PASS: public OpenClash YAML parity, router fields, safe placeholders, no private settings and standalone generation');
