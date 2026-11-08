@@ -122,3 +122,14 @@ const selfGroup=bothVps['proxy-groups'].find(g=>g.name==='🖥️ 自建 VPS');
 assert.deepEqual(Array.from(selfGroup.proxies),['📋 LisaVPS 全部节点','♻️ LisaVPS 自动','📋 AkiVPS 全部节点','♻️ AkiVPS 自动']);
 assert(!selfGroup.proxies.includes('🖥️ 自建 VPS'));
 assert.deepEqual(Array.from(selfGroup.use),['private-vps-direct','private-akicloud-direct']);
+
+const withResip=ctx.main({...structuredClone(input),'proxy-providers':{
+  ...structuredClone(providers),'private-resip-direct':{type:'inline',payload:[
+    {name:'美国 RESIP 主线',type:'socks5'},{name:'美国 RESIP 备用',type:'socks5'}
+  ]}
+}},'resip-auto');
+const resipAuto=withResip['proxy-groups'].find(g=>g.name==='♻️ RESIP 自动');
+assert.equal(resipAuto.type,'url-test');
+assert.deepEqual(Array.from(resipAuto.use),['private-resip-direct']);
+for(const name of ['🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2','🖥️ 自建 VPS','🛫 出国前置'])
+  assert(withResip['proxy-groups'].find(g=>g.name===name).proxies.includes('♻️ RESIP 自动'));

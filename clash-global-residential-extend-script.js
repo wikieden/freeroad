@@ -738,9 +738,14 @@ function main(config, name) {
     output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
       name:resipGroup,type:'select',proxies:[],use:['private-resip-direct'],'empty-fallback':'REJECT'
     });
-    for (const name of [home,home2,front]) {
+    const resipAuto = '♻️ RESIP 自动';
+    output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
+      name:resipAuto,type:'url-test',proxies:[],use:['private-resip-direct'],
+      url:'https://www.gstatic.com/generate_204',interval:600,tolerance:50,'empty-fallback':'REJECT'
+    });
+    for (const name of [home,home2,front,'🖥️ 自建 VPS']) {
       const g = output['proxy-groups'].find(g => g.name === name);
-      g.proxies = Array.from(new Set(g.proxies.concat(resipGroup)));
+      if (g) g.proxies = Array.from(new Set(g.proxies.concat(name === '🖥️ 自建 VPS' ? [] : [resipGroup],resipAuto)));
     }
   }
   if (defaults) {
