@@ -21,9 +21,11 @@ Clash Verge 更新配套全局扩展脚本；FlClash 拆分模式更新并重新
 
 ## 分组与直接节点
 
-出国前置先列国家自动、国家全部节点和自建订阅组，再列具体节点。Clash、FlClash 和 OpenClash 的两个美国 VPS 出口及自建 VPS 只引用链式 provider；LisaVPS、AkiVPS、RESIP 的子组使用带“｜链式”的专用副本。具体链式节点同时直接列在子组之后。原始节点及原始子组供其他分组选择，同一来源复用订阅与凭据。
+出国前置的自动和手选都使用独立的普通订阅及可用的独立内嵌节点，排除依赖前置的链式出口。Clash、FlClash 和 OpenClash 的两个美国 VPS 出口及自建 VPS 使用链式节点；LisaVPS、AkiVPS、RESIP、Lychee 通过供应商子组进入。原始节点仍可供其他组使用。
 
-Shadowrocket 按节点的 Proxy Pass 连接。私有配置保留 Lisa/Aki 各四种协议及自动/全部节点入口，包括当前客户端详情未提供 Proxy Pass 的 TUIC、Hysteria2；它们是用户明确保留的单跳例外。能设置 Proxy Pass 的节点继续通过出国前置。品牌自动组可能选中这些单跳节点，因此不能视为强制链式自动组。导入 conf 不会设置首页节点的 Proxy Pass。
+应用组先显示配置默认项，再显示三个 VPS 出口、适用的全局策略和地区组。Claude 和 OpenAI 不直接提供全局分流及全局自动；Claude 保留 RESIP 快捷入口。全局分流可选三个 VPS 出口。地区组按统一顺序排列，各地区自动在全部节点前。
+
+Shadowrocket 按节点的 Proxy Pass 连接。私有配置保留 Lisa/Aki 各四种协议。TUIC、Hysteria2 保留在各自自动组和「Lisa/Aki 单跳」手选组，普通供应商手选组不再重复列出它们。能设置 Proxy Pass 的节点继续通过出国前置。品牌自动组可能选中这些单跳节点，因此不能视为强制链式自动组。导入 conf 不会设置首页节点的 Proxy Pass。
 
 Clash、FlClash 和 OpenClash 使用 HTTP provider，节点随订阅更新。可在私有 `freeroad-defaults` 中通过 `egress1-provider`、`egress2-provider` 指定两个出口的默认 provider；默认线路子组优先使用对应 provider 的首个节点。客户端保存过的选择可能覆盖此默认值。
 

@@ -605,7 +605,11 @@ function main(config, name) {
   const homeProvider = key => /^private-(?:residential(?:-|$)|ipipgo-chain$)/.test(key);
   const originalProviders = config['proxy-providers'] || {};
   const homeProviders = Object.keys(originalProviders).filter(homeProvider);
-  const ordinaryProviders = Object.keys(originalProviders).filter(key => !/^private-/.test(key));
+  const ordinaryProviders = Object.keys(originalProviders).filter(key => {
+    const p = originalProviders[key];
+    return !/^private-/.test(key) && !p.override?.['dialer-proxy'] &&
+      !(p.payload || []).some(node => node['dialer-proxy']);
+  });
   const output = freeroadBaseMain(config, name);
   const defaults = output['freeroad-defaults'];
   delete output['freeroad-defaults'];
@@ -630,18 +634,10 @@ function main(config, name) {
   const exclude = '(?i)固定[ _-]*IP|家宅|住宅|IPIPGO|lychee|sunflare|(?:vless|tuic)(?:[｜-]+链式)?$|支持[ _-]*AI[ :：]|剩余|到期|过期|套餐|官网|公告|客服|回国|中国';
   const auto = {name:frontAuto,type:'url-test',proxies:transit.slice(),url:'https://www.gstatic.com/generate_204',interval:600,tolerance:50};
   if (ordinaryProviders.length) Object.assign(auto,{use:ordinaryProviders.slice(),'exclude-filter':exclude,'empty-fallback':'REJECT'});
-  // The manual selector intentionally exposes every automatic group and provider,
-  // including residential chained copies. The user owns loop avoidance here.
-  // Keep the existing default and the automatic transit pool unchanged.
-  const allAutomatic = output['proxy-groups'].filter(g => g.type === 'url-test').map(g => g.name);
-  const allCountryNodes = output['proxy-groups'].filter(g => g.name.endsWith('全部节点')).map(g => g.name);
-  const inlineChoices = (output.proxies || []).map(p => p.name).filter(Boolean);
+  // Manual and automatic transit only use sources independent of the VPS dialer.
   const select = {
-    name:front,type:'select',
-    proxies:Array.from(new Set([frontAuto].concat(allAutomatic,allCountryNodes,inlineChoices))),
-    use:Object.keys(originalProviders),
-    'exclude-filter':'(?i)支持[ _-]*AI[ :：]|流量(?:剩余|不足|耗尽|重置|用尽)|重置|过期|到期|套餐|官网|公告|剩余|续费|购买|客服',
-    'empty-fallback':'REJECT'
+    name:front,type:'select',proxies:[frontAuto,...transit],
+    use:ordinaryProviders.slice(),'exclude-filter':exclude,'empty-fallback':'REJECT'
   };
   output['proxy-groups'].push(auto,select,
     {name:home,type:'select',proxies:[],use:homeProviders.slice(),'empty-fallback':'REJECT'},
@@ -695,12 +691,9 @@ function main(config, name) {
     g.proxies = Array.from(new Set(g.proxies.concat(home, home2)));
     g.use = ['private-fixed-ip'].filter(k => originalProviders[k]).concat(selfHostedProviders);
   }
-  const frontGroup = output['proxy-groups'].find(g => g.name === front);
-  const extraFront = vpsAutos.slice();
   for (const [provider,name] of [['private-vps-direct','📋 LisaVPS 全部节点'],['private-akicloud-direct','📋 AkiVPS 全部节点']]) {
     if (!originalProviders[provider]) continue;
     output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{name,type:'select',proxies:[],use:[provider],'empty-fallback':'REJECT'});
-    extraFront.push(name);
   }
   const israel = '🇮🇱 以色列全部节点';
   output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
@@ -708,11 +701,6 @@ function main(config, name) {
     filter:'(?i)🇮🇱|以色列|Israel|Tel[ _-]?Aviv|特拉维夫|Jerusalem|耶路撒冷|(?:^|[^A-Za-z])(?:IL|ISR)(?:$|[^A-Za-z])',
     'exclude-filter':select['exclude-filter'],'empty-fallback':'REJECT'
   });
-  extraFront.push(israel);
-  frontGroup.proxies = Array.from(new Set(frontGroup.proxies.concat(extraFront)));
-  frontGroup.proxies = Array.from(new Set(frontGroup.proxies.concat(
-    output['proxy-groups'].filter(g => g.type === 'url-test' || g.name.endsWith('全部节点')).map(g => g.name)
-  )));
   // Independent US VPS selectors exclude ordinary airport subscriptions.
   // Keep original and chained private exits and the Lisa/Aki selectors.
   const usPool = output['proxy-groups'].find(g => g.name === '🇺🇸 美国全部节点');
@@ -733,23 +721,24 @@ function main(config, name) {
       (output.proxies || []).filter(p => /美国|USA|United[ _-]?States|🇺🇸/i.test(p.name)).map(p => p.name))));
   }
   // RESIP is the provider of the existing Verizon endpoints.
-  if (originalProviders['private-resip-direct']) {
+  const resipProviders = ['private-resip-direct','private-resip-2-direct'].filter(key => originalProviders[key]);
+  if (resipProviders.length) {
     const resipGroup = '📋 RESIP 全部节点';
     output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
-      name:resipGroup,type:'select',proxies:[],use:['private-resip-direct'],'empty-fallback':'REJECT'
+      name:resipGroup,type:'select',proxies:[],use:resipProviders.slice(),'empty-fallback':'REJECT'
     });
     const resipAuto = '♻️ RESIP 自动';
     output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
-      name:resipAuto,type:'url-test',proxies:[],use:['private-resip-direct'],
+      name:resipAuto,type:'url-test',proxies:[],use:resipProviders.slice(),
       url:'https://www.gstatic.com/generate_204',interval:600,tolerance:50,'empty-fallback':'REJECT'
     });
-    for (const name of [home,home2,front,'🖥️ 自建 VPS']) {
+    for (const name of [home,home2,'🖥️ 自建 VPS']) {
       const g = output['proxy-groups'].find(g => g.name === name);
-      if (g) g.proxies = Array.from(new Set(g.proxies.concat(name === '🖥️ 自建 VPS' ? [] : [resipGroup],resipAuto)));
+      if (g) g.proxies = Array.from(new Set(g.proxies.concat([resipGroup],resipAuto)));
     }
   }
   if (defaults) {
-    const targets = {claude:'🧠 Claude',openai:'✨ OpenAI/AI',global:'🎯 全局分流',developer:'🛠️ GitHub/开发工具',shopping:'🛒 购物/支付'};
+    const targets = {claude:'🧠 Claude',openai:'✨ OpenAI/AI',global:'🎯 全局分流',developer:'🛠️ GitHub/开发工具',shopping:'🛒 购物/支付',google:'🔷 Google/Gemini/Antigravity',otherAi:'🤖 其他 AI 服务',steam:'🎮 Steam',media:'🎬 国际媒体'};
     for (const [key, choice] of Object.entries(defaults)) {
       if (key === 'egress1-provider' || key === 'egress2-provider') {
         const g = output['proxy-groups'].find(g => g.name === (key === 'egress1-provider' ? home : home2));
@@ -772,7 +761,8 @@ function main(config, name) {
     'private-fixed-ip':'private-residential-manual',
     'private-vps-direct':'private-residential-vps',
     'private-akicloud-direct':'private-residential-akicloud',
-    'private-resip-direct':'private-residential-resip'
+    'private-resip-direct':'private-residential-resip',
+    'private-resip-2-direct':'private-residential-resip-2'
   };
   const chainedProvider = key => {
     const mapped = homeProvider(key) ? key : chainProviderMap[key];
@@ -797,10 +787,49 @@ function main(config, name) {
   for (const name of [home,home2,'🖥️ 自建 VPS']) {
     const g = output['proxy-groups'].find(g => g.name === name);
     if (!g) continue;
-    g.use = name === '🖥️ 自建 VPS' ? selfHostedProviders.map(chainedProvider) : homeProviders.slice();
+    g.use = name === '🖥️ 自建 VPS' ? [] : homeProviders.filter(key => !Object.values(chainProviderMap).includes(key) || key === 'private-residential-manual');
     g.proxies = Array.from(new Set(g.proxies.map(n => chainGroups.get(n) || n).filter(n =>
       validChainGroups.has(n) || (output.proxies || []).some(p => p.name === n && p['dialer-proxy'] === front)
     )));
+  }
+  if (originalProviders['private-residential-resip-2']) {
+    const resip = chainGroups.get('📋 RESIP 全部节点');
+    if (resip) {
+      const claude = output['proxy-groups'].find(g => g.name === '🧠 Claude');
+      claude.proxies = Array.from(new Set(claude.proxies.concat(resip)));
+    }
+  }
+  const lychee = '📋 Lychee 全部节点｜链式';
+  const manualProvider = originalProviders['private-residential-manual'];
+  const onlyLychee = manualProvider?.payload?.length && manualProvider.payload.every(p => /lychee/i.test(p.name));
+  if (manualProvider && (!manualProvider.payload || manualProvider.payload.some(p => /lychee/i.test(p.name)))) {
+    output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
+      name:lychee,type:'select',proxies:[],use:['private-residential-manual'],filter:'(?i)lychee','empty-fallback':'REJECT'
+    });
+    for (const name of [home,home2,'🖥️ 自建 VPS']) {
+      const g = output['proxy-groups'].find(group => group.name === name);
+      if (g) {
+        g.proxies.push(lychee);
+        if (onlyLychee) g.use = g.use.filter(key => key !== 'private-residential-manual');
+      }
+    }
+  }
+  const global = '🎯 全局分流', globalAuto = '♻️ 全局自动';
+  const vpsChoicesForApps = [home,home2,...(selfHostedGroup ? [selfHostedGroup.name] : [])];
+  const regions = [['美国','🇺🇸'],['台湾','🌏'],['香港','🇭🇰'],['日本','🇯🇵'],['新加坡','🇸🇬'],['韩国','🇰🇷'],['欧洲','🇪🇺'],['其他国家','🌐']];
+  const applications = ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity','🤖 其他 AI 服务','🎮 Steam','🛠️ GitHub/开发工具','🎬 国际媒体','🛒 购物/支付','MS-Apple'];
+  const available = new Set(output['proxy-groups'].map(g => g.name).concat('DIRECT'));
+  const globalGroup = output['proxy-groups'].find(g => g.name === global);
+  globalGroup.proxies = Array.from(new Set([globalGroup.proxies[0],...vpsChoicesForApps,...globalGroup.proxies]));
+  for (const [i,name] of applications.entries()) {
+    const g = output['proxy-groups'].find(group => group.name === name);
+    if (!g) continue;
+    const regional = regions.filter(([region]) => i >= 4 || ['美国','台湾','日本','新加坡'].includes(region) || (i === 3 && region === '欧洲'))
+      .flatMap(([region,flag]) => ['♻️ '+region+'自动',flag+' '+region+'全部节点']);
+    const choices = [g.proxies[0],...vpsChoicesForApps,...(i >= 2 ? [global,globalAuto] : []),
+      ...(i === 0 ? ['📋 RESIP 全部节点｜链式'] : []),...regional,...(i >= 4 ? ['DIRECT'] : [])];
+    g.proxies = Array.from(new Set(choices.filter(choice => available.has(choice))));
+    delete g.use;
   }
   // Nested choices precede directly listed servers; provider nodes follow them.
   const groupNames = new Set(output['proxy-groups'].map(g => g.name));
