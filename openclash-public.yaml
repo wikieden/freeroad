@@ -716,6 +716,7 @@ rules:
 - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
 - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
 - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+- AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,api.anthropic.com),(DOMAIN,mcp.anthropic.com),(DOMAIN,console.anthropic.com),(DOMAIN,workbench.anthropic.com),(DOMAIN,statsig.anthropic.com),(DOMAIN,cdn.anthropic.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN-SUFFIX,ant.dev),(DOMAIN-SUFFIX,anthropic.team),(DOMAIN-SUFFIX,antspace.dev),(DOMAIN-SUFFIX,chatbotclaude.com),(DOMAIN-SUFFIX,claude.app),(DOMAIN-SUFFIX,claude.dev),(DOMAIN-SUFFIX,claude.new),(DOMAIN-SUFFIX,claude.site),(DOMAIN-SUFFIX,claudeacademy.com),(DOMAIN-SUFFIX,claudepages.dev),(DOMAIN-SUFFIX,claudestudio.com),(DOMAIN,o1158394.ingest.us.sentry.io),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(DOMAIN,http-intake.logs.us5.datadoghq.com),(IP-CIDR,160.79.104.0/23,no-resolve),(IP-CIDR,153.61.224.0/22,no-resolve),(IP-CIDR6,2607:6bc0::/48,no-resolve),(GEOSITE,anthropic)))),REJECT
 - "DOMAIN-SUFFIX,anthropic.com,\U0001F9E0 Claude"
 - "DOMAIN-SUFFIX,claude.ai,\U0001F9E0 Claude"
 - "DOMAIN-SUFFIX,claude.com,\U0001F9E0 Claude"
@@ -752,7 +753,7 @@ rules:
 - "IP-CIDR,153.61.224.0/22,\U0001F9E0 Claude,no-resolve"
 - "IP-CIDR6,2607:6bc0::/48,\U0001F9E0 Claude,no-resolve"
 - "GEOSITE,anthropic,\U0001F9E0 Claude"
-- AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/23),(IP-CIDR,153.61.224.0/22),(IP-CIDR6,2607:6bc0::/48),(GEOSITE,anthropic)))),REJECT
+- AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT
 - GEOSITE,openai,✨ OpenAI/AI
 - DOMAIN-SUFFIX,openai.com,✨ OpenAI/AI
 - DOMAIN-SUFFIX,chatgpt.com,✨ OpenAI/AI
@@ -760,7 +761,6 @@ rules:
 - DOMAIN-SUFFIX,oaiusercontent.com,✨ OpenAI/AI
 - DOMAIN-SUFFIX,oaistatsig.com,✨ OpenAI/AI
 - DOMAIN-SUFFIX,openaimerge.com,✨ OpenAI/AI
-- AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT
 - "DOMAIN-SUFFIX,github.com,\U0001F6E0️ GitHub/开发工具"
 - "DOMAIN-SUFFIX,githubusercontent.com,\U0001F6E0️ GitHub/开发工具"
 - "DOMAIN-SUFFIX,githubassets.com,\U0001F6E0️ GitHub/开发工具"
@@ -784,6 +784,7 @@ rules:
 - "DOMAIN-SUFFIX,vscode.dev,\U0001F6E0️ GitHub/开发工具"
 - "DOMAIN-SUFFIX,marketplace.visualstudio.com,\U0001F6E0️ GitHub/开发工具"
 - "DOMAIN-SUFFIX,dev.azure.com,\U0001F6E0️ GitHub/开发工具"
+- AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,youtube.com),(DOMAIN-SUFFIX,youtu.be),(DOMAIN-SUFFIX,googlevideo.com),(DOMAIN-SUFFIX,ytimg.com),(GEOSITE,youtube),(DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,google)))),REJECT
 - "DOMAIN-SUFFIX,youtube.com,\U0001F537 Google/Gemini/Antigravity"
 - "DOMAIN-SUFFIX,youtu.be,\U0001F537 Google/Gemini/Antigravity"
 - "DOMAIN-SUFFIX,googlevideo.com,\U0001F537 Google/Gemini/Antigravity"
@@ -845,7 +846,6 @@ rules:
 - "DOMAIN-KEYWORD,cloudcode-pa,\U0001F537 Google/Gemini/Antigravity"
 - "DOMAIN-KEYWORD,makersuite,\U0001F537 Google/Gemini/Antigravity"
 - "GEOSITE,google,\U0001F537 Google/Gemini/Antigravity"
-- AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT
 - "DOMAIN-SUFFIX,perplexity.ai,\U0001F916 其他 AI 服务"
 - "DOMAIN-SUFFIX,pplx.ai,\U0001F916 其他 AI 服务"
 - "DOMAIN-SUFFIX,cursor.sh,\U0001F916 其他 AI 服务"

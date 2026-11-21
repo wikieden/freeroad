@@ -337,8 +337,6 @@ function main(config, name) {
     "IP-CIDR,153.61.224.0/22,🧠 Claude,no-resolve",
     "IP-CIDR6,2607:6bc0::/48,🧠 Claude,no-resolve",
     "GEOSITE,anthropic,🧠 Claude", // geosite 分类兜底
-    // 仅当上面的 Claude 策略不支持 UDP、内核继续向下匹配时触发，避免换出口或直连。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/23),(IP-CIDR,153.61.224.0/22),(IP-CIDR6,2607:6bc0::/48),(GEOSITE,anthropic)))),REJECT",
 
     // OpenAI：官方一方域名保持独立出口；不把共享的 Stripe/Cloudflare/Intercom 整站强行归组。
     "GEOSITE,openai,✨ OpenAI/AI",
@@ -348,8 +346,6 @@ function main(config, name) {
     "DOMAIN-SUFFIX,oaiusercontent.com,✨ OpenAI/AI",
     "DOMAIN-SUFFIX,oaistatsig.com,✨ OpenAI/AI",
     "DOMAIN-SUFFIX,openaimerge.com,✨ OpenAI/AI",
-    // OpenAI 节点不支持 UDP 时拒绝，让应用回退 TCP，不允许落入普通国外组。
-    "AND,((NETWORK,UDP),(OR,((GEOSITE,openai),(DOMAIN-SUFFIX,openai.com),(DOMAIN-SUFFIX,chatgpt.com),(DOMAIN-SUFFIX,oaistatic.com),(DOMAIN-SUFFIX,oaiusercontent.com),(DOMAIN-SUFFIX,oaistatsig.com),(DOMAIN-SUFFIX,openaimerge.com)))),REJECT",
 
     // 🛠️ GitHub/开发工具：专属域名优先于通用厂商分类；不按共享 CDN 或整段云 IP 分流。
     "DOMAIN-SUFFIX,github.com,🛠️ GitHub/开发工具",
@@ -440,8 +436,6 @@ function main(config, name) {
     "DOMAIN-KEYWORD,cloudcode-pa,🔷 Google/Gemini/Antigravity",
     "DOMAIN-KEYWORD,makersuite,🔷 Google/Gemini/Antigravity",
     "GEOSITE,google,🔷 Google/Gemini/Antigravity",
-    // Google 组节点不支持 UDP 时拒绝，避免 QUIC 改走其它国家节点或直连。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,gemini.google.com),(DOMAIN-SUFFIX,generativelanguage.googleapis.com),(DOMAIN-KEYWORD,antigravity),(DOMAIN-KEYWORD,cloudcode-pa),(DOMAIN-KEYWORD,makersuite),(GEOSITE,youtube),(GEOSITE,google)))),REJECT",
 
     // 其他境外 AI：先列官方/常用主域名，再由维护中的 GeoSite 分类补齐新服务。
     "DOMAIN-SUFFIX,perplexity.ai,🤖 其他 AI 服务",
@@ -636,6 +630,17 @@ function main(config, name) {
     "RULE-SET,freeroad-proxy,🎯 全局分流",
     "MATCH,❓ 未识别流量"
   ];
+
+  // Build each UDP reject from its application rules so new domains and IPs
+  // inherit the same policy. Insert before the first rule for that application.
+  for (const group of [claudeGroup, aiGroup, googleAiGroup]) {
+    const targets = config.rules.map(rule => rule.split(","));
+    const matches = targets.filter(([, , policy]) => policy === group.name);
+    const first = targets.findIndex(([, , policy]) => policy === group.name);
+    const predicates = matches.map(([type, value, , option]) =>
+      "(" + [type, value].concat(option ? [option] : []).join(",") + ")").join(",");
+    config.rules.splice(first, 0, "AND,((NETWORK,UDP),(OR,(" + predicates + "))),REJECT");
+  }
 
   // ---------- 6.1 个人规则 + 私网直连规则（插到最前，优先级最高）----------
   // 2.5.2 会先应用订阅「编辑规则」，再执行全局脚本。个人规则使用 append 标记协议，
