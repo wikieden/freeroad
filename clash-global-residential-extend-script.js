@@ -268,6 +268,9 @@ function freeroadBaseMain(config, name) {
   const developerGroup = {name:"🛠️ GitHub/开发工具",type:"select",proxies:["🎯 全局分流","DIRECT"].concat(REGION_NAMES)};
   const shoppingGroup = {name:"🛒 购物/支付",type:"select",proxies:["🎯 全局分流","DIRECT"].concat(REGION_NAMES)};
 
+  const socialGroups = ["📘 Meta/Facebook", "𝕏 X/Twitter", "✈️ Telegram", "💬 Discord", "🎵 TikTok", "👽 Reddit"]
+    .map(name => ({name,type:"select",proxies:["🎯 全局分流","♻️ 全局自动"].concat(REGION_NAMES,["DIRECT"])}));
+
   const adsGroup = { name: "🚫 广告拦截", type: "select", proxies: ["REJECT", "DIRECT"] };
   const steamGroup = {
     name: "🎮 Steam", type: "select",
@@ -275,7 +278,7 @@ function freeroadBaseMain(config, name) {
   };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, developerGroup, mediaGroup, shoppingGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, developerGroup, mediaGroup, shoppingGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, adsGroup].concat(socialGroups,regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   // Maintained Proxy aggregate. Its domains and IP ranges supplement existing
@@ -312,16 +315,30 @@ function freeroadBaseMain(config, name) {
     "DOMAIN,anthropic.com.cdn.cloudflare.net,🧠 Claude",
     "DOMAIN,servd-anthropic-website.b-cdn.net,🧠 Claude",
     // 认证与内容服务
+    "DOMAIN-SUFFIX,ant.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,anthropic.team,🧠 Claude",
+    "DOMAIN-SUFFIX,antspace.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,chatbotclaude.com,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.app,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.new,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.site,🧠 Claude",
+    "DOMAIN-SUFFIX,claudeacademy.com,🧠 Claude",
+    "DOMAIN-SUFFIX,claudepages.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,claudestudio.com,🧠 Claude",
+    "DOMAIN,o1158394.ingest.us.sentry.io,🧠 Claude",
     "DOMAIN,anthropic.auth0.com,🧠 Claude",
     "DOMAIN,anthropic-com.ghost.io,🧠 Claude",
     // 明确的 Claude 专属监控端点；共享 SaaS 域名不固定到任何 AI 组。
     "DOMAIN,browser-intake-us5-datadoghq.com,🧠 Claude",
-    // IP 段兜底（不使用 IP-ASN，避免 Windows 首次校验依赖额外下载 ASN.mmdb）
-    "IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve",
-    "IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve",
+    "DOMAIN,http-intake.logs.us5.datadoghq.com,🧠 Claude",
+    // Claude API / Console 官方入站网段。
+    "IP-CIDR,160.79.104.0/23,🧠 Claude,no-resolve",
+    "IP-CIDR,153.61.224.0/22,🧠 Claude,no-resolve",
+    "IP-CIDR6,2607:6bc0::/48,🧠 Claude,no-resolve",
     "GEOSITE,anthropic,🧠 Claude", // geosite 分类兜底
     // 仅当上面的 Claude 策略不支持 UDP、内核继续向下匹配时触发，避免换出口或直连。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT",
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/23),(IP-CIDR,153.61.224.0/22),(IP-CIDR6,2607:6bc0::/48),(GEOSITE,anthropic)))),REJECT",
 
     // OpenAI：官方一方域名保持独立出口；不把共享的 Stripe/Cloudflare/Intercom 整站强行归组。
     "GEOSITE,openai,✨ OpenAI/AI",
@@ -526,10 +543,55 @@ function freeroadBaseMain(config, name) {
     "DOMAIN,steamcloudsweden.blob.core.windows.net,🎮 Steam",
     "DOMAIN,steamugcquincy.blob.core.windows.net,🎮 Steam",
 
-    // 社交 / 媒体（折叠，无独立组）
-    "GEOSITE,telegram,🎯 全局分流",
-    "GEOSITE,discord,🎯 全局分流",
-    "GEOIP,telegram,🎯 全局分流,no-resolve",
+    "DOMAIN-SUFFIX,facebook.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,facebook.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fb.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fb.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fbcdn.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fbsbx.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,instagram.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,cdninstagram.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,ig.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,whatsapp.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,whatsapp.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,wa.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,threads.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,threads.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,meta.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,messenger.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,m.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,x.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,twitter.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,t.co,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,twimg.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,tweetdeck.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,pscp.tv,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,periscope.tv,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,telegram.org,✈️ Telegram",
+    "DOMAIN-SUFFIX,telegram.me,✈️ Telegram",
+    "DOMAIN-SUFFIX,t.me,✈️ Telegram",
+    "DOMAIN-SUFFIX,telegra.ph,✈️ Telegram",
+    "DOMAIN-SUFFIX,telesco.pe,✈️ Telegram",
+    "DOMAIN-SUFFIX,discord.com,💬 Discord",
+    "DOMAIN-SUFFIX,discord.gg,💬 Discord",
+    "DOMAIN-SUFFIX,discordapp.com,💬 Discord",
+    "DOMAIN-SUFFIX,discordapp.net,💬 Discord",
+    "DOMAIN-SUFFIX,discord.media,💬 Discord",
+    "DOMAIN-SUFFIX,discordcdn.com,💬 Discord",
+    "DOMAIN-SUFFIX,tiktok.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,tiktokv.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,tiktokcdn.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,tiktokcdn-us.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,musical.ly,🎵 TikTok",
+    "DOMAIN-SUFFIX,reddit.com,👽 Reddit",
+    "DOMAIN-SUFFIX,redd.it,👽 Reddit",
+    "DOMAIN-SUFFIX,redditmedia.com,👽 Reddit",
+    "DOMAIN-SUFFIX,redditstatic.com,👽 Reddit",
+    "DOMAIN-SUFFIX,redditinc.com,👽 Reddit",
+    // 社交专属组
+    "GEOSITE,telegram,✈️ Telegram",
+    "GEOSITE,discord,💬 Discord",
+    "GEOIP,telegram,✈️ Telegram,no-resolve",
     "GEOSITE,netflix,🎬 国际媒体",
     "GEOSITE,disney,🎬 国际媒体",
     // 非通用服务的个人偏好统一放到订阅右键的「编辑规则 / 编辑代理组」中维护。
@@ -612,6 +674,10 @@ function main(config, name) {
   });
   const output = freeroadBaseMain(config, name);
   const defaults = output['freeroad-defaults'];
+  const vpsRegions = output['freeroad-vps-regions'];
+  const omitUnclassifiedVps = output['freeroad-vps-omit-unclassified'] === true;
+  delete output['freeroad-vps-regions'];
+  delete output['freeroad-vps-omit-unclassified'];
   delete output['freeroad-defaults'];
   if (!homeProviders.length) return output;
   // These manual AI selectors expose original and chained exits directly.
@@ -703,7 +769,6 @@ function main(config, name) {
   });
   // Independent US VPS selectors exclude ordinary airport subscriptions.
   // Keep original and chained private exits and the Lisa/Aki selectors.
-  const usPool = output['proxy-groups'].find(g => g.name === '🇺🇸 美国全部节点');
   const vpsChoices = ['♻️ LisaVPS 自动','📋 LisaVPS 全部节点','♻️ AkiVPS 自动','📋 AkiVPS 全部节点']
     .filter(name => output['proxy-groups'].some(g => g.name === name));
   const selfHostedGroup = output['proxy-groups'].find(g => g.name === '🖥️ 自建 VPS');
@@ -715,9 +780,8 @@ function main(config, name) {
   for (const name of [home,home2]) {
     const g = output['proxy-groups'].find(g => g.name === name);
     g.use = Array.from(new Set(g.use.concat(Object.keys(originalProviders).filter(k => /^private-/.test(k)))));
-    g.filter = usPool.filter;
-    g['exclude-filter'] = select['exclude-filter'];
-    g.proxies = Array.from(new Set(g.proxies.concat(vpsChoices, ['🖥️ 自建 VPS'],
+    g['exclude-filter'] = '(?i)剩余|到期|过期|套餐|官网|公告|客服|IPIPGO|sunflare';
+    g.proxies = Array.from(new Set(g.proxies.concat(vpsChoices, selfHostedGroup ? [selfHostedGroup.name] : [],
       (output.proxies || []).filter(p => /美国|USA|United[ _-]?States|🇺🇸/i.test(p.name)).map(p => p.name))));
   }
   // RESIP is the provider of the existing Verizon endpoints.
@@ -738,7 +802,7 @@ function main(config, name) {
     }
   }
   if (defaults) {
-    const targets = {claude:'🧠 Claude',openai:'✨ OpenAI/AI',global:'🎯 全局分流',developer:'🛠️ GitHub/开发工具',shopping:'🛒 购物/支付',google:'🔷 Google/Gemini/Antigravity',otherAi:'🤖 其他 AI 服务',steam:'🎮 Steam',media:'🎬 国际媒体'};
+    const targets = {claude:'🧠 Claude',openai:'✨ OpenAI/AI',global:'🎯 全局分流',developer:'🛠️ GitHub/开发工具',shopping:'🛒 购物/支付',selfHosted:'🖥️ 自建 VPS',google:'🔷 Google/Gemini/Antigravity',otherAi:'🤖 其他 AI 服务',steam:'🎮 Steam',media:'🎬 国际媒体'};
     for (const [key, choice] of Object.entries(defaults)) {
       if (key === 'egress1-provider' || key === 'egress2-provider') {
         const g = output['proxy-groups'].find(g => g.name === (key === 'egress1-provider' ? home : home2));
@@ -783,11 +847,14 @@ function main(config, name) {
     const g = output['proxy-groups'].find(g => g.name === name);
     if (g) g.use = Array.from(new Set(g.use.map(chainedProvider)));
   }
-  const validChainGroups = new Set([...chainGroups.values(),'🖥️ 自建 VPS','🇺🇸 美国 VPS 默认线路','🇺🇸 美国 VPS 出口2默认线路']);
+  const validChainGroups = new Set(chainGroups.values());
+  for (const name of ['🖥️ 自建 VPS','🇺🇸 美国 VPS 默认线路','🇺🇸 美国 VPS 出口2默认线路']) {
+    if (output['proxy-groups'].some(g => g.name === name)) validChainGroups.add(name);
+  }
   for (const name of [home,home2,'🖥️ 自建 VPS']) {
     const g = output['proxy-groups'].find(g => g.name === name);
     if (!g) continue;
-    g.use = name === '🖥️ 自建 VPS' ? [] : homeProviders.filter(key => !Object.values(chainProviderMap).includes(key) || key === 'private-residential-manual');
+    g.use = name === '🖥️ 自建 VPS' ? [] : homeProviders.slice();
     g.proxies = Array.from(new Set(g.proxies.map(n => chainGroups.get(n) || n).filter(n =>
       validChainGroups.has(n) || (output.proxies || []).some(p => p.name === n && p['dialer-proxy'] === front)
     )));
@@ -799,25 +866,38 @@ function main(config, name) {
       claude.proxies = Array.from(new Set(claude.proxies.concat(resip)));
     }
   }
-  const lychee = '📋 Lychee 全部节点｜链式';
+  const lychee = '📋 美国 LycheeIP VPS｜链式';
   const manualProvider = originalProviders['private-residential-manual'];
-  const onlyLychee = manualProvider?.payload?.length && manualProvider.payload.every(p => /lychee/i.test(p.name));
   if (manualProvider && (!manualProvider.payload || manualProvider.payload.some(p => /lychee/i.test(p.name)))) {
     output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
       name:lychee,type:'select',proxies:[],use:['private-residential-manual'],filter:'(?i)lychee','empty-fallback':'REJECT'
     });
     for (const name of [home,home2,'🖥️ 自建 VPS']) {
       const g = output['proxy-groups'].find(group => group.name === name);
-      if (g) {
-        g.proxies.push(lychee);
-        if (onlyLychee) g.use = g.use.filter(key => key !== 'private-residential-manual');
-      }
+      if (g) g.proxies.push(lychee);
     }
   }
+  const allUsVps = '📋 美国 VPS 全部节点｜链式';
+  output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
+    name:allUsVps,type:'select',proxies:[],use:homeProviders.slice(),
+    'exclude-filter':'(?i)剩余|到期|过期|套餐|官网|公告|客服|IPIPGO|sunflare','empty-fallback':'REJECT'
+  });
   const global = '🎯 全局分流', globalAuto = '♻️ 全局自动';
   const vpsChoicesForApps = [home,home2,...(selfHostedGroup ? [selfHostedGroup.name] : [])];
   const regions = [['美国','🇺🇸'],['台湾','🌏'],['香港','🇭🇰'],['日本','🇯🇵'],['新加坡','🇸🇬'],['韩国','🇰🇷'],['欧洲','🇪🇺'],['其他国家','🌐']];
   const applications = ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity','🤖 其他 AI 服务','🎮 Steam','🛠️ GitHub/开发工具','🎬 国际媒体','🛒 购物/支付','MS-Apple'];
+  const socialNames = ["📘 Meta/Facebook", "𝕏 X/Twitter", "✈️ Telegram", "💬 Discord", "🎵 TikTok", "👽 Reddit"];
+  for (const name of socialNames) {
+    const g = output['proxy-groups'].find(g => g.name === name);
+    if (!g) continue;
+    g.proxies = Array.from(new Set([
+      ...(selfHostedGroup ? [selfHostedGroup.name] : [global]),home,home2,
+      global,globalAuto,allUsVps,
+      ...regions.flatMap(([region,flag]) => ['♻️ '+region+'自动',flag+' '+region+'全部节点']),
+      'DIRECT'
+    ].filter(choice => output['proxy-groups'].some(g => g.name === choice) || choice === 'DIRECT')));
+    delete g.use;
+  }
   const available = new Set(output['proxy-groups'].map(g => g.name).concat('DIRECT'));
   const globalGroup = output['proxy-groups'].find(g => g.name === global);
   globalGroup.proxies = Array.from(new Set([globalGroup.proxies[0],...vpsChoicesForApps,...globalGroup.proxies]));
@@ -827,15 +907,52 @@ function main(config, name) {
     const regional = regions.filter(([region]) => i >= 4 || ['美国','台湾','日本','新加坡'].includes(region) || (i === 3 && region === '欧洲'))
       .flatMap(([region,flag]) => ['♻️ '+region+'自动',flag+' '+region+'全部节点']);
     const choices = [g.proxies[0],...vpsChoicesForApps,...(i >= 2 ? [global,globalAuto] : []),
-      ...(i === 0 ? ['📋 RESIP 全部节点｜链式'] : []),...regional,...(i >= 4 ? ['DIRECT'] : [])];
+      ...(i === 0 ? ['📋 RESIP 全部节点｜链式',lychee] : []),allUsVps,...regional,...(i >= 4 ? ['DIRECT'] : [])];
     g.proxies = Array.from(new Set(choices.filter(choice => available.has(choice))));
     delete g.use;
+  }
+  // Optional private location labels and name patterns; no endpoints or city assumptions.
+  if (Array.isArray(vpsRegions) && vpsRegions.length) {
+    const regionSelector = '🗺️ VPS 地区';
+    const pairs = [];
+    const labelledPairs = [];
+    const excludeLocations = vpsRegions.map(({pattern}) => '(' + pattern + ')').join('|');
+    const regionGroups = omitUnclassifiedVps ? vpsRegions : [...vpsRegions,{name:'VPS 地区未标注'}];
+    for (const {name,pattern} of regionGroups) {
+      const automatic = name + ' 自动', manual = name + ' 手选';
+      const exclude = '剩余|到期|过期|套餐|官网|公告|客服|IPIPGO|sunflare';
+      const common = {proxies:[],use:homeProviders.slice(),'empty-fallback':'REJECT',
+        'exclude-filter':'(?i)' + exclude + (pattern ? '' : '|' + excludeLocations)};
+      if (pattern) common.filter = '(?i)' + pattern;
+      output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,
+        {...common,name:automatic,type:'url-test',url:'https://www.gstatic.com/generate_204',interval:600,tolerance:50},
+        {...common,name:manual,type:'select'});
+      pairs.push(automatic,manual);
+      if (pattern) labelledPairs.push(automatic,manual);
+    }
+    output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,
+      {name:regionSelector,type:'select',proxies:pairs,'empty-fallback':'REJECT'});
+    for (const name of [home,home2,'🖥️ 自建 VPS']) {
+      const g = output['proxy-groups'].find(group => group.name === name);
+      if (g) {
+        g.proxies.push(regionSelector);
+        if (name === home || name === home2) g.proxies.push(...labelledPairs);
+      }
+    }
   }
   // Nested choices precede directly listed servers; provider nodes follow them.
   const groupNames = new Set(output['proxy-groups'].map(g => g.name));
   for (const name of [front,home,home2]) {
     const g = output['proxy-groups'].find(g => g.name === name);
     g.proxies = g.proxies.filter(n => groupNames.has(n)).concat(g.proxies.filter(n => !groupNames.has(n)));
+  }
+  const groups = output['proxy-groups'];
+  groups.splice(groups.indexOf(auto), 1);
+  groups.splice(groups.indexOf(select) + 1, 0, auto);
+  // Filtering out private providers can leave a region with no remaining source.
+  // Mihomo requires a nonempty use or proxies list even with empty-fallback.
+  for (const group of groups) {
+    if (!group.use?.length && !group.proxies?.length) group.proxies = ['REJECT'];
   }
   return output;
 }

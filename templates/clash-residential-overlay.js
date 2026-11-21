@@ -11,6 +11,10 @@ function main(config, name) {
   });
   const output = freeroadBaseMain(config, name);
   const defaults = output['freeroad-defaults'];
+  const vpsRegions = output['freeroad-vps-regions'];
+  const omitUnclassifiedVps = output['freeroad-vps-omit-unclassified'] === true;
+  delete output['freeroad-vps-regions'];
+  delete output['freeroad-vps-omit-unclassified'];
   delete output['freeroad-defaults'];
   if (!homeProviders.length) return output;
   // These manual AI selectors expose original and chained exits directly.
@@ -102,7 +106,6 @@ function main(config, name) {
   });
   // Independent US VPS selectors exclude ordinary airport subscriptions.
   // Keep original and chained private exits and the Lisa/Aki selectors.
-  const usPool = output['proxy-groups'].find(g => g.name === '🇺🇸 美国全部节点');
   const vpsChoices = ['♻️ LisaVPS 自动','📋 LisaVPS 全部节点','♻️ AkiVPS 自动','📋 AkiVPS 全部节点']
     .filter(name => output['proxy-groups'].some(g => g.name === name));
   const selfHostedGroup = output['proxy-groups'].find(g => g.name === '🖥️ 自建 VPS');
@@ -114,9 +117,8 @@ function main(config, name) {
   for (const name of [home,home2]) {
     const g = output['proxy-groups'].find(g => g.name === name);
     g.use = Array.from(new Set(g.use.concat(Object.keys(originalProviders).filter(k => /^private-/.test(k)))));
-    g.filter = usPool.filter;
-    g['exclude-filter'] = select['exclude-filter'];
-    g.proxies = Array.from(new Set(g.proxies.concat(vpsChoices, ['🖥️ 自建 VPS'],
+    g['exclude-filter'] = '(?i)剩余|到期|过期|套餐|官网|公告|客服|IPIPGO|sunflare';
+    g.proxies = Array.from(new Set(g.proxies.concat(vpsChoices, selfHostedGroup ? [selfHostedGroup.name] : [],
       (output.proxies || []).filter(p => /美国|USA|United[ _-]?States|🇺🇸/i.test(p.name)).map(p => p.name))));
   }
   // RESIP is the provider of the existing Verizon endpoints.
@@ -137,7 +139,7 @@ function main(config, name) {
     }
   }
   if (defaults) {
-    const targets = {claude:'🧠 Claude',openai:'✨ OpenAI/AI',global:'🎯 全局分流',developer:'🛠️ GitHub/开发工具',shopping:'🛒 购物/支付',google:'🔷 Google/Gemini/Antigravity',otherAi:'🤖 其他 AI 服务',steam:'🎮 Steam',media:'🎬 国际媒体'};
+    const targets = {claude:'🧠 Claude',openai:'✨ OpenAI/AI',global:'🎯 全局分流',developer:'🛠️ GitHub/开发工具',shopping:'🛒 购物/支付',selfHosted:'🖥️ 自建 VPS',google:'🔷 Google/Gemini/Antigravity',otherAi:'🤖 其他 AI 服务',steam:'🎮 Steam',media:'🎬 国际媒体'};
     for (const [key, choice] of Object.entries(defaults)) {
       if (key === 'egress1-provider' || key === 'egress2-provider') {
         const g = output['proxy-groups'].find(g => g.name === (key === 'egress1-provider' ? home : home2));
@@ -182,11 +184,14 @@ function main(config, name) {
     const g = output['proxy-groups'].find(g => g.name === name);
     if (g) g.use = Array.from(new Set(g.use.map(chainedProvider)));
   }
-  const validChainGroups = new Set([...chainGroups.values(),'🖥️ 自建 VPS','🇺🇸 美国 VPS 默认线路','🇺🇸 美国 VPS 出口2默认线路']);
+  const validChainGroups = new Set(chainGroups.values());
+  for (const name of ['🖥️ 自建 VPS','🇺🇸 美国 VPS 默认线路','🇺🇸 美国 VPS 出口2默认线路']) {
+    if (output['proxy-groups'].some(g => g.name === name)) validChainGroups.add(name);
+  }
   for (const name of [home,home2,'🖥️ 自建 VPS']) {
     const g = output['proxy-groups'].find(g => g.name === name);
     if (!g) continue;
-    g.use = name === '🖥️ 自建 VPS' ? [] : homeProviders.filter(key => !Object.values(chainProviderMap).includes(key) || key === 'private-residential-manual');
+    g.use = name === '🖥️ 自建 VPS' ? [] : homeProviders.slice();
     g.proxies = Array.from(new Set(g.proxies.map(n => chainGroups.get(n) || n).filter(n =>
       validChainGroups.has(n) || (output.proxies || []).some(p => p.name === n && p['dialer-proxy'] === front)
     )));
@@ -198,25 +203,38 @@ function main(config, name) {
       claude.proxies = Array.from(new Set(claude.proxies.concat(resip)));
     }
   }
-  const lychee = '📋 Lychee 全部节点｜链式';
+  const lychee = '📋 美国 LycheeIP VPS｜链式';
   const manualProvider = originalProviders['private-residential-manual'];
-  const onlyLychee = manualProvider?.payload?.length && manualProvider.payload.every(p => /lychee/i.test(p.name));
   if (manualProvider && (!manualProvider.payload || manualProvider.payload.some(p => /lychee/i.test(p.name)))) {
     output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
       name:lychee,type:'select',proxies:[],use:['private-residential-manual'],filter:'(?i)lychee','empty-fallback':'REJECT'
     });
     for (const name of [home,home2,'🖥️ 自建 VPS']) {
       const g = output['proxy-groups'].find(group => group.name === name);
-      if (g) {
-        g.proxies.push(lychee);
-        if (onlyLychee) g.use = g.use.filter(key => key !== 'private-residential-manual');
-      }
+      if (g) g.proxies.push(lychee);
     }
   }
+  const allUsVps = '📋 美国 VPS 全部节点｜链式';
+  output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,{
+    name:allUsVps,type:'select',proxies:[],use:homeProviders.slice(),
+    'exclude-filter':'(?i)剩余|到期|过期|套餐|官网|公告|客服|IPIPGO|sunflare','empty-fallback':'REJECT'
+  });
   const global = '🎯 全局分流', globalAuto = '♻️ 全局自动';
   const vpsChoicesForApps = [home,home2,...(selfHostedGroup ? [selfHostedGroup.name] : [])];
   const regions = [['美国','🇺🇸'],['台湾','🌏'],['香港','🇭🇰'],['日本','🇯🇵'],['新加坡','🇸🇬'],['韩国','🇰🇷'],['欧洲','🇪🇺'],['其他国家','🌐']];
   const applications = ['🧠 Claude','✨ OpenAI/AI','🔷 Google/Gemini/Antigravity','🤖 其他 AI 服务','🎮 Steam','🛠️ GitHub/开发工具','🎬 国际媒体','🛒 购物/支付','MS-Apple'];
+  const socialNames = ["📘 Meta/Facebook", "𝕏 X/Twitter", "✈️ Telegram", "💬 Discord", "🎵 TikTok", "👽 Reddit"];
+  for (const name of socialNames) {
+    const g = output['proxy-groups'].find(g => g.name === name);
+    if (!g) continue;
+    g.proxies = Array.from(new Set([
+      ...(selfHostedGroup ? [selfHostedGroup.name] : [global]),home,home2,
+      global,globalAuto,allUsVps,
+      ...regions.flatMap(([region,flag]) => ['♻️ '+region+'自动',flag+' '+region+'全部节点']),
+      'DIRECT'
+    ].filter(choice => output['proxy-groups'].some(g => g.name === choice) || choice === 'DIRECT')));
+    delete g.use;
+  }
   const available = new Set(output['proxy-groups'].map(g => g.name).concat('DIRECT'));
   const globalGroup = output['proxy-groups'].find(g => g.name === global);
   globalGroup.proxies = Array.from(new Set([globalGroup.proxies[0],...vpsChoicesForApps,...globalGroup.proxies]));
@@ -226,15 +244,52 @@ function main(config, name) {
     const regional = regions.filter(([region]) => i >= 4 || ['美国','台湾','日本','新加坡'].includes(region) || (i === 3 && region === '欧洲'))
       .flatMap(([region,flag]) => ['♻️ '+region+'自动',flag+' '+region+'全部节点']);
     const choices = [g.proxies[0],...vpsChoicesForApps,...(i >= 2 ? [global,globalAuto] : []),
-      ...(i === 0 ? ['📋 RESIP 全部节点｜链式'] : []),...regional,...(i >= 4 ? ['DIRECT'] : [])];
+      ...(i === 0 ? ['📋 RESIP 全部节点｜链式',lychee] : []),allUsVps,...regional,...(i >= 4 ? ['DIRECT'] : [])];
     g.proxies = Array.from(new Set(choices.filter(choice => available.has(choice))));
     delete g.use;
+  }
+  // Optional private location labels and name patterns; no endpoints or city assumptions.
+  if (Array.isArray(vpsRegions) && vpsRegions.length) {
+    const regionSelector = '🗺️ VPS 地区';
+    const pairs = [];
+    const labelledPairs = [];
+    const excludeLocations = vpsRegions.map(({pattern}) => '(' + pattern + ')').join('|');
+    const regionGroups = omitUnclassifiedVps ? vpsRegions : [...vpsRegions,{name:'VPS 地区未标注'}];
+    for (const {name,pattern} of regionGroups) {
+      const automatic = name + ' 自动', manual = name + ' 手选';
+      const exclude = '剩余|到期|过期|套餐|官网|公告|客服|IPIPGO|sunflare';
+      const common = {proxies:[],use:homeProviders.slice(),'empty-fallback':'REJECT',
+        'exclude-filter':'(?i)' + exclude + (pattern ? '' : '|' + excludeLocations)};
+      if (pattern) common.filter = '(?i)' + pattern;
+      output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,
+        {...common,name:automatic,type:'url-test',url:'https://www.gstatic.com/generate_204',interval:600,tolerance:50},
+        {...common,name:manual,type:'select'});
+      pairs.push(automatic,manual);
+      if (pattern) labelledPairs.push(automatic,manual);
+    }
+    output['proxy-groups'].splice(output['proxy-groups'].length-trailing.length,0,
+      {name:regionSelector,type:'select',proxies:pairs,'empty-fallback':'REJECT'});
+    for (const name of [home,home2,'🖥️ 自建 VPS']) {
+      const g = output['proxy-groups'].find(group => group.name === name);
+      if (g) {
+        g.proxies.push(regionSelector);
+        if (name === home || name === home2) g.proxies.push(...labelledPairs);
+      }
+    }
   }
   // Nested choices precede directly listed servers; provider nodes follow them.
   const groupNames = new Set(output['proxy-groups'].map(g => g.name));
   for (const name of [front,home,home2]) {
     const g = output['proxy-groups'].find(g => g.name === name);
     g.proxies = g.proxies.filter(n => groupNames.has(n)).concat(g.proxies.filter(n => !groupNames.has(n)));
+  }
+  const groups = output['proxy-groups'];
+  groups.splice(groups.indexOf(auto), 1);
+  groups.splice(groups.indexOf(select) + 1, 0, auto);
+  // Filtering out private providers can leave a region with no remaining source.
+  // Mihomo requires a nonempty use or proxies list even with empty-fallback.
+  for (const group of groups) {
+    if (!group.use?.length && !group.proxies?.length) group.proxies = ['REJECT'];
   }
   return output;
 }

@@ -22,6 +22,25 @@ const providers = {
   }
 };
 const input = { 'proxy-providers': providers, proxies: [{ name: '美国-普通内嵌', type: 'ss' }] };
+// Changing to an ordinary subscription may leave only a fixed chained exit.
+const partial = ctx.main({
+  proxies: [{name:'美国-普通订阅',type:'ss'}],
+  'proxy-providers': {airport: providers.airport, 'private-residential-manual': providers['private-residential-manual']}
+}, 'other-subscription');
+for (const name of ['🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2']) {
+  const exit = partial['proxy-groups'].find(g => g.name === name);
+  assert(!exit.proxies.includes('🖥️ 自建 VPS'), name + ' must not reference absent 自建 VPS');
+  assert(exit.use.includes('private-residential-manual'));
+}
+const inlineOnly = ctx.main({
+  proxies: [{name:'美国-普通订阅',type:'ss'}],
+  'proxy-providers': {'private-residential-manual': providers['private-residential-manual']}
+}, 'inline-subscription');
+const other = inlineOnly['proxy-groups'].find(g => g.name === '♻️ 其他国家自动');
+assert.deepEqual(Array.from(other.proxies), ['REJECT'], 'Empty regional group must fail closed');
+for (const g of inlineOnly['proxy-groups']) {
+  assert(g.use?.length || g.proxies?.length, g.name + ': use or proxies missing');
+}
 const base = ctx.freeroadBaseMain(structuredClone(input), 'base');
 const output = ctx.main(structuredClone(input), 'residential');
 const requestedDefaults = ctx.main({ ...structuredClone(input), 'freeroad-defaults': {
@@ -34,14 +53,14 @@ assert(!Object.hasOwn(requestedDefaults, 'freeroad-defaults'));
 assert.deepEqual(Array.from(requestedDefaults['proxy-groups'].find(g => g.name === '🖥️ 自建 VPS').use), []);
 assert(!requestedDefaults['proxy-groups'].find(g => g.name === '🛫 出国前置').proxies.includes('🎯 全局分流'));
 const group = name => output['proxy-groups'].find(g => g.name === name);
-const pinnedNames = ['🛫 出国前置','🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2'];
-const trailingNames = ['♻️ 其他国家自动','♻️ 出国前置自动'];
-assert.deepEqual(Array.from(output['proxy-groups'].slice(0,3), g=>g.name), pinnedNames);
-assert.equal(output['proxy-groups'][3].name, '🖥️ 自建 VPS');
-assert.deepEqual(Array.from(output['proxy-groups'].slice(-2), g=>g.name), trailingNames);
+const pinnedNames = ['🛫 出国前置','♻️ 出国前置自动','🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2'];
+const trailingNames = ['♻️ 其他国家自动'];
+assert.deepEqual(Array.from(output['proxy-groups'].slice(0,pinnedNames.length), g=>g.name), pinnedNames);
+assert.equal(output['proxy-groups'][pinnedNames.length].name, '🖥️ 自建 VPS');
+assert.deepEqual(Array.from(output['proxy-groups'].slice(-trailingNames.length), g=>g.name), trailingNames);
 const homeProviders = ['private-residential-manual', 'private-residential-vps'];
-assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口').use), ['private-residential-manual']);
-assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口2').use), ['private-residential-manual']);
+assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口').use), homeProviders);
+assert.deepEqual(Array.from(group('🖥️ 美国 VPS 出口2').use), homeProviders);
 assert.notEqual(group('🖥️ 美国 VPS 出口2').use, group('🖥️ 美国 VPS 出口').use);
 assert.notEqual(group('🖥️ 美国 VPS 出口2').proxies, group('🖥️ 美国 VPS 出口').proxies);
 assert.deepEqual(Array.from(group('🛫 出国前置').use), ['airport']);
@@ -68,8 +87,8 @@ for (const name of ['🎮 Steam','🎯 全局分流','🎬 国际媒体','❓ �
   assert.equal(group(name).proxies[0], base['proxy-groups'].find(g=>g.name===name).proxies[0]);
 }
 const rerun = ctx.main(structuredClone(output), 'repeat');
-assert.deepEqual(Array.from(rerun['proxy-groups'].slice(0,3), g=>g.name), pinnedNames);
-assert.deepEqual(Array.from(rerun['proxy-groups'].slice(-2), g=>g.name), trailingNames);
+assert.deepEqual(Array.from(rerun['proxy-groups'].slice(0,pinnedNames.length), g=>g.name), pinnedNames);
+assert.deepEqual(Array.from(rerun['proxy-groups'].slice(-trailingNames.length), g=>g.name), trailingNames);
 assert.equal(rerun['proxy-groups'].filter(g => g.name === '🖥️ 美国 VPS 出口').length, 1);
 assert.equal(rerun['proxy-groups'].filter(g => g.name === '🖥️ 美国 VPS 出口2').length, 1);
 assert.equal(new Set(group('🛫 出国前置').proxies).size, group('🛫 出国前置').proxies.length);
@@ -92,7 +111,7 @@ console.log('PASS: residential groups, US choices, automatic exclusion, independ
 for (const n of ['🖥️ 美国 VPS 出口','🖥️ 美国 VPS 出口2']) {
   assert(group(n).proxies.includes('♻️ LisaVPS 自动｜链式'));
   assert(group(n).proxies.includes('📋 LisaVPS 全部节点｜链式'));
-  assert.equal(group(n).filter, group('🇺🇸 美国全部节点').filter);
+  assert(!group(n).filter);
   assert(!group(n).use.includes('airport'));
   assert(!group(n).proxies.includes('🇺🇸 美国全部节点'));
   assert(!group(n).proxies.includes('♻️ 美国自动'));

@@ -268,6 +268,9 @@ function main(config, name) {
   const developerGroup = {name:"🛠️ GitHub/开发工具",type:"select",proxies:["🎯 全局分流","DIRECT"].concat(REGION_NAMES)};
   const shoppingGroup = {name:"🛒 购物/支付",type:"select",proxies:["🎯 全局分流","DIRECT"].concat(REGION_NAMES)};
 
+  const socialGroups = ["📘 Meta/Facebook", "𝕏 X/Twitter", "✈️ Telegram", "💬 Discord", "🎵 TikTok", "👽 Reddit"]
+    .map(name => ({name,type:"select",proxies:["🎯 全局分流","♻️ 全局自动"].concat(REGION_NAMES,["DIRECT"])}));
+
   const adsGroup = { name: "🚫 广告拦截", type: "select", proxies: ["REJECT", "DIRECT"] };
   const steamGroup = {
     name: "🎮 Steam", type: "select",
@@ -275,7 +278,7 @@ function main(config, name) {
   };
 
   // AI 风控组优先展示；顺序仅影响界面排列，不影响 rules 的匹配优先级。
-  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, developerGroup, mediaGroup, shoppingGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, adsGroup].concat(regionGroups).concat(autoGroups);
+  config["proxy-groups"] = [claudeGroup, aiGroup, googleAiGroup, otherAiGroup, steamGroup, developerGroup, mediaGroup, shoppingGroup, msAppleGroup, mainGroup, unmatchedGroup, globalAuto, adsGroup].concat(socialGroups,regionGroups).concat(autoGroups);
 
   // ---------- 6. 规则 ----------
   // Maintained Proxy aggregate. Its domains and IP ranges supplement existing
@@ -312,16 +315,30 @@ function main(config, name) {
     "DOMAIN,anthropic.com.cdn.cloudflare.net,🧠 Claude",
     "DOMAIN,servd-anthropic-website.b-cdn.net,🧠 Claude",
     // 认证与内容服务
+    "DOMAIN-SUFFIX,ant.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,anthropic.team,🧠 Claude",
+    "DOMAIN-SUFFIX,antspace.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,chatbotclaude.com,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.app,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.new,🧠 Claude",
+    "DOMAIN-SUFFIX,claude.site,🧠 Claude",
+    "DOMAIN-SUFFIX,claudeacademy.com,🧠 Claude",
+    "DOMAIN-SUFFIX,claudepages.dev,🧠 Claude",
+    "DOMAIN-SUFFIX,claudestudio.com,🧠 Claude",
+    "DOMAIN,o1158394.ingest.us.sentry.io,🧠 Claude",
     "DOMAIN,anthropic.auth0.com,🧠 Claude",
     "DOMAIN,anthropic-com.ghost.io,🧠 Claude",
     // 明确的 Claude 专属监控端点；共享 SaaS 域名不固定到任何 AI 组。
     "DOMAIN,browser-intake-us5-datadoghq.com,🧠 Claude",
-    // IP 段兜底（不使用 IP-ASN，避免 Windows 首次校验依赖额外下载 ASN.mmdb）
-    "IP-CIDR,160.79.104.0/21,🧠 Claude,no-resolve",
-    "IP-CIDR6,2607:6bc0::/32,🧠 Claude,no-resolve",
+    "DOMAIN,http-intake.logs.us5.datadoghq.com,🧠 Claude",
+    // Claude API / Console 官方入站网段。
+    "IP-CIDR,160.79.104.0/23,🧠 Claude,no-resolve",
+    "IP-CIDR,153.61.224.0/22,🧠 Claude,no-resolve",
+    "IP-CIDR6,2607:6bc0::/48,🧠 Claude,no-resolve",
     "GEOSITE,anthropic,🧠 Claude", // geosite 分类兜底
     // 仅当上面的 Claude 策略不支持 UDP、内核继续向下匹配时触发，避免换出口或直连。
-    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/21),(IP-CIDR6,2607:6bc0::/32),(GEOSITE,anthropic)))),REJECT",
+    "AND,((NETWORK,UDP),(OR,((DOMAIN-SUFFIX,anthropic.com),(DOMAIN-SUFFIX,claude.ai),(DOMAIN-SUFFIX,claude.com),(DOMAIN-SUFFIX,clau.de),(DOMAIN-SUFFIX,claudemcpclient.com),(DOMAIN-SUFFIX,claudemcpcontent.com),(DOMAIN-SUFFIX,claudeusercontent.com),(DOMAIN-SUFFIX,anthropicusercontent.com),(DOMAIN,anthropic.auth0.com),(DOMAIN,anthropic.com.cdn.cloudflare.net),(DOMAIN,servd-anthropic-website.b-cdn.net),(DOMAIN,anthropic-com.ghost.io),(DOMAIN,browser-intake-us5-datadoghq.com),(IP-CIDR,160.79.104.0/23),(IP-CIDR,153.61.224.0/22),(IP-CIDR6,2607:6bc0::/48),(GEOSITE,anthropic)))),REJECT",
 
     // OpenAI：官方一方域名保持独立出口；不把共享的 Stripe/Cloudflare/Intercom 整站强行归组。
     "GEOSITE,openai,✨ OpenAI/AI",
@@ -526,10 +543,55 @@ function main(config, name) {
     "DOMAIN,steamcloudsweden.blob.core.windows.net,🎮 Steam",
     "DOMAIN,steamugcquincy.blob.core.windows.net,🎮 Steam",
 
-    // 社交 / 媒体（折叠，无独立组）
-    "GEOSITE,telegram,🎯 全局分流",
-    "GEOSITE,discord,🎯 全局分流",
-    "GEOIP,telegram,🎯 全局分流,no-resolve",
+    "DOMAIN-SUFFIX,facebook.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,facebook.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fb.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fb.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fbcdn.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,fbsbx.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,instagram.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,cdninstagram.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,ig.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,whatsapp.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,whatsapp.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,wa.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,threads.net,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,threads.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,meta.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,messenger.com,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,m.me,📘 Meta/Facebook",
+    "DOMAIN-SUFFIX,x.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,twitter.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,t.co,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,twimg.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,tweetdeck.com,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,pscp.tv,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,periscope.tv,𝕏 X/Twitter",
+    "DOMAIN-SUFFIX,telegram.org,✈️ Telegram",
+    "DOMAIN-SUFFIX,telegram.me,✈️ Telegram",
+    "DOMAIN-SUFFIX,t.me,✈️ Telegram",
+    "DOMAIN-SUFFIX,telegra.ph,✈️ Telegram",
+    "DOMAIN-SUFFIX,telesco.pe,✈️ Telegram",
+    "DOMAIN-SUFFIX,discord.com,💬 Discord",
+    "DOMAIN-SUFFIX,discord.gg,💬 Discord",
+    "DOMAIN-SUFFIX,discordapp.com,💬 Discord",
+    "DOMAIN-SUFFIX,discordapp.net,💬 Discord",
+    "DOMAIN-SUFFIX,discord.media,💬 Discord",
+    "DOMAIN-SUFFIX,discordcdn.com,💬 Discord",
+    "DOMAIN-SUFFIX,tiktok.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,tiktokv.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,tiktokcdn.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,tiktokcdn-us.com,🎵 TikTok",
+    "DOMAIN-SUFFIX,musical.ly,🎵 TikTok",
+    "DOMAIN-SUFFIX,reddit.com,👽 Reddit",
+    "DOMAIN-SUFFIX,redd.it,👽 Reddit",
+    "DOMAIN-SUFFIX,redditmedia.com,👽 Reddit",
+    "DOMAIN-SUFFIX,redditstatic.com,👽 Reddit",
+    "DOMAIN-SUFFIX,redditinc.com,👽 Reddit",
+    // 社交专属组
+    "GEOSITE,telegram,✈️ Telegram",
+    "GEOSITE,discord,💬 Discord",
+    "GEOIP,telegram,✈️ Telegram,no-resolve",
     "GEOSITE,netflix,🎬 国际媒体",
     "GEOSITE,disney,🎬 国际媒体",
     // 非通用服务的个人偏好统一放到订阅右键的「编辑规则 / 编辑代理组」中维护。
